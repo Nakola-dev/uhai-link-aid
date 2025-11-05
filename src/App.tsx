@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Services from "./pages/Services";
+import Learn from "./pages/Learn";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfilePage from "./pages/UserProfilePage";
 import UserQRPage from "./pages/UserQRPage";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/learn" element={<Learn />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard/user" element={<UserDashboard />} />

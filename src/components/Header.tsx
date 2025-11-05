@@ -59,6 +59,7 @@ const Header = () => {
   const publicLinks = [
     { to: '/', label: 'Home' },
     { to: '/services', label: 'Services' },
+    { to: '/learn', label: 'Learn' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
   ];
@@ -82,12 +83,12 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-gradient-to-r from-primary/5 via-background to-background backdrop-blur-lg shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <Heart className="h-8 w-8 text-primary" fill="currentColor" />
+          <Link to="/" className="flex items-center space-x-2 group">
+            <Heart className="h-8 w-8 text-primary transition-transform group-hover:scale-110" fill="currentColor" />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               UhaiLink
             </span>
@@ -96,21 +97,29 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
             {links.map((link) => (
-              <Button
+              <Link
                 key={link.to}
-                variant={isActive(link.to) ? "default" : "ghost"}
-                asChild
+                to={link.to}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  isActive(link.to)
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-foreground hover:bg-primary/10 hover:text-primary'
+                }`}
               >
-                <Link to={link.to}>{link.label}</Link>
-              </Button>
+                {link.label}
+              </Link>
             ))}
             {user && profile?.role === 'admin' && (
-              <Button
-                variant={isActive('/dashboard/admin') ? "default" : "ghost"}
-                asChild
+              <Link
+                to="/dashboard/admin"
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  isActive('/dashboard/admin')
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-foreground hover:bg-primary/10 hover:text-primary'
+                }`}
               >
-                <Link to="/dashboard/admin">Admin</Link>
-              </Button>
+                Admin
+              </Link>
             )}
           </nav>
 
@@ -151,7 +160,7 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild>
+              <Button asChild className="rounded-full shadow-md hover:shadow-lg transition-all duration-300">
                 <Link to="/auth">Get Started</Link>
               </Button>
             )}

@@ -58,6 +58,7 @@ const Header = () => {
 
   const publicLinks = [
     { to: '/', label: 'Home' },
+    { to: '/services', label: 'Services' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
   ];

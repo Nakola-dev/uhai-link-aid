@@ -12,6 +12,7 @@ const UserDashboard = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [tutorials, setTutorials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +36,13 @@ const UserDashboard = () => {
         .single();
 
       setProfile(profileData);
+
+      // Check if user is admin
+      const { data: hasAdminRole } = await supabase.rpc('has_role', {
+        _user_id: session.user.id,
+        _role: 'admin'
+      });
+      setIsAdmin(hasAdminRole || false);
 
       // Fetch emergency organizations
       const { data: orgsData } = await supabase
@@ -78,9 +86,7 @@ const UserDashboard = () => {
               <h1 className="text-3xl md:text-4xl font-bold">
                 Welcome back, {profile?.full_name || 'User'}!
               </h1>
-              <Badge variant={profile?.role === 'admin' ? 'default' : 'secondary'}>
-                {profile?.role || 'user'}
-              </Badge>
+              {isAdmin && <Badge variant="default">Admin</Badge>}
             </div>
             <p className="text-muted-foreground">
               Manage your medical profile and emergency information
@@ -128,6 +134,26 @@ const UserDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Admin Panel Link */}
+          {isAdmin && (
+            <Card className="mb-8 border-primary/50 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center text-primary">
+                  <Users className="h-5 w-5 mr-2" />
+                  Admin Access
+                </CardTitle>
+                <CardDescription>
+                  You have administrator privileges
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate('/dashboard/admin')} className="w-full md:w-auto">
+                  Open Admin Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Emergency Organizations */}

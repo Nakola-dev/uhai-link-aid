@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      emergency_contacts: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          phone: string
+          priority: number | null
+          relationship: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          phone: string
+          priority?: number | null
+          relationship?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          priority?: number | null
+          relationship?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_organizations: {
         Row: {
           created_at: string | null
@@ -46,13 +79,19 @@ export type Database = {
           allergies: string[] | null
           blood_type: string | null
           chronic_conditions: string[] | null
+          city: string | null
+          county: string | null
+          date_of_birth: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
           full_name: string | null
+          gender: string | null
           id: string
           medications: string[] | null
           phone: string | null
+          primary_hospital: string | null
+          profile_photo_url: string | null
           role: string | null
           updated_at: string | null
         }
@@ -60,13 +99,19 @@ export type Database = {
           allergies?: string[] | null
           blood_type?: string | null
           chronic_conditions?: string[] | null
+          city?: string | null
+          county?: string | null
+          date_of_birth?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
           full_name?: string | null
+          gender?: string | null
           id: string
           medications?: string[] | null
           phone?: string | null
+          primary_hospital?: string | null
+          profile_photo_url?: string | null
           role?: string | null
           updated_at?: string | null
         }
@@ -74,13 +119,19 @@ export type Database = {
           allergies?: string[] | null
           blood_type?: string | null
           chronic_conditions?: string[] | null
+          city?: string | null
+          county?: string | null
+          date_of_birth?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           medications?: string[] | null
           phone?: string | null
+          primary_hospital?: string | null
+          profile_photo_url?: string | null
           role?: string | null
           updated_at?: string | null
         }
@@ -137,15 +188,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -272,6 +350,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

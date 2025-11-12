@@ -12,6 +12,10 @@ import Learn from "./pages/Learn";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfilePage from "./pages/UserProfilePage";
 import UserQRPage from "./pages/UserQRPage";
+import UserLearn from "./pages/UserLearn";
+import AIAssistant from "./pages/AIAssistant";
+import BuyQRTag from "./pages/BuyQRTag";
+import UserSettings from "./pages/UserSettings";
 import PublicProfileView from "./pages/PublicProfileView";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -34,6 +38,10 @@ const App = () => (
           <Route path="/dashboard/user" element={<UserDashboard />} />
           <Route path="/dashboard/user/profile" element={<UserProfilePage />} />
           <Route path="/dashboard/user/qr" element={<UserQRPage />} />
+          <Route path="/dashboard/user/learn" element={<UserLearn />} />
+          <Route path="/dashboard/user/assistant" element={<AIAssistant />} />
+          <Route path="/dashboard/user/buy-qr" element={<BuyQRTag />} />
+          <Route path="/dashboard/user/settings" element={<UserSettings />} />
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
           <Route path="/profile/:token" element={<PublicProfileView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

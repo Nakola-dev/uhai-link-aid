@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ArrowLeft, Plus, Trash2, User, Heart, Phone as PhoneIcon, QrCode as QrCodeIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/Layout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { QRCodeSVG } from 'qrcode.react';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,6 +25,8 @@ const UserProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState('');
   const [qrToken, setQrToken] = useState('');
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
     email: '',
@@ -68,6 +70,7 @@ const UserProfilePage = () => {
       if (profileError) throw profileError;
 
       if (profileData) {
+        setUser(profileData);
         setProfile({
           full_name: profileData.full_name || '',
           email: session.user.email || '',
@@ -286,18 +289,17 @@ const UserProfilePage = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <DashboardLayout user={user} isAdmin={isAdmin}>
+        <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <Layout>
-      <div className="py-8 md:py-12">
-        <div className="container mx-auto px-4 max-w-5xl">
+    <DashboardLayout user={user} isAdmin={isAdmin}>
+      <div className="max-w-5xl mx-auto space-y-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard/user')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -591,8 +593,7 @@ const UserProfilePage = () => {
             </div>
           </form>
         </div>
-      </div>
-    </Layout>
+      </DashboardLayout>
   );
 };
 

@@ -188,6 +188,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_learning_progress: {
+        Row: {
+          completed: boolean
+          created_at: string | null
+          id: string
+          last_watched_at: string | null
+          progress_percentage: number
+          tutorial_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string | null
+          id?: string
+          last_watched_at?: string | null
+          progress_percentage?: number
+          tutorial_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string | null
+          id?: string
+          last_watched_at?: string | null
+          progress_percentage?: number
+          tutorial_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_learning_progress_tutorial_id_fkey"
+            columns: ["tutorial_id"]
+            isOneToOne: false
+            referencedRelation: "tutorials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

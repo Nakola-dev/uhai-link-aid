@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Download, RefreshCw, Copy, Printer, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
-import Layout from '@/components/Layout';
+import DashboardLayout from '@/components/DashboardLayout';
 
 const UserQRPage = () => {
   const [loading, setLoading] = useState(true);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -131,18 +133,17 @@ const UserQRPage = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+      <DashboardLayout user={user} isAdmin={isAdmin}>
+        <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </Layout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <Layout>
-      <div className="py-8 md:py-12">
-        <div className="container mx-auto px-4 max-w-4xl">
+    <DashboardLayout user={user} isAdmin={isAdmin}>
+      <div className="max-w-4xl mx-auto space-y-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard/user')} className="mb-4 no-print">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -267,7 +268,6 @@ const UserQRPage = () => {
             </div>
           </div>
         </div>
-      </div>
 
       <style>{`
         @media print {
@@ -279,7 +279,7 @@ const UserQRPage = () => {
           }
         }
       `}</style>
-    </Layout>
+    </DashboardLayout>
   );
 };
 

@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      articles: {
+        Row: {
+          category: string
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          read_time: number | null
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          read_time?: number | null
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          read_time?: number | null
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      downloadable_materials: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          file_size: string | null
+          file_type: string
+          file_url: string
+          id: string
+          is_premium: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: string | null
+          file_type: string
+          file_url: string
+          id?: string
+          is_premium?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: string | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          is_premium?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emergency_contacts: {
         Row: {
           created_at: string | null
@@ -247,6 +325,51 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webinars: {
+        Row: {
+          category: string | null
+          created_at: string
+          date_time: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_paid: boolean
+          price: number | null
+          speaker: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          date_time: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_paid?: boolean
+          price?: number | null
+          speaker: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          date_time?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_paid?: boolean
+          price?: number | null
+          speaker?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
         }
         Relationships: []
       }

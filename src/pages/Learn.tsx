@@ -1,12 +1,73 @@
-import { useState } from 'react';
-import { BookOpen, Video, Download, Heart, Phone, Shield, AlertCircle, Activity, Droplet } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Video, Download, Heart, Phone, Shield, AlertCircle, Activity, Droplet, Calendar, CreditCard, Clock, User, ArrowRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
+import { format } from 'date-fns';
+
+interface Article {
+  id: string;
+  title: string;
+  summary: string;
+  image_url: string | null;
+  category: string;
+  read_time: number | null;
+  is_featured: boolean;
+}
+
+interface Webinar {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  speaker: string;
+  date_time: string;
+  price: number;
+  is_paid: boolean;
+  url: string | null;
+  category: string | null;
+}
 
 const Learn = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchContent();
+  }, []);
+
+  const fetchContent = async () => {
+    try {
+      const [articlesRes, webinarsRes] = await Promise.all([
+        supabase
+          .from('articles')
+          .select('*')
+          .eq('is_featured', true)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('webinars')
+          .select('*')
+          .gte('date_time', new Date().toISOString())
+          .order('date_time', { ascending: true })
+          .limit(6)
+      ]);
+
+      if (articlesRes.data) setArticles(articlesRes.data);
+      if (webinarsRes.data) setWebinars(webinarsRes.data);
+    } catch (error) {
+      console.error('Error fetching content:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generalSteps = [
     {
@@ -118,20 +179,174 @@ const Learn = () => {
       <div className="py-12 md:py-20">
         <div className="container mx-auto px-4">
           {/* Hero Section */}
-          <div className="max-w-3xl mx-auto text-center mb-16 space-y-4 animate-fade-in">
-            <div className="inline-block p-3 rounded-full bg-primary/10 mb-4">
-              <BookOpen className="h-8 w-8 text-primary" />
+          <div className="max-w-4xl mx-auto text-center mb-16 space-y-6 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Sparkles className="h-4 w-4" />
+              Empowering Africa with Life-Saving Knowledge
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Learn First Aid
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Learn with Uhai Assist
             </h1>
-            <p className="text-xl text-muted-foreground">
-              Master life-saving skills with our comprehensive learning resources
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Master essential first aid techniques with our comprehensive guides, expert-led webinars, 
+              video tutorials, and downloadable resources. Your journey to saving lives starts here.
             </p>
+            <div className="flex flex-wrap justify-center gap-4 pt-4">
+              <Button size="lg" onClick={() => navigate('/auth')} className="group">
+                Get Started Free
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => {
+                document.getElementById('webinars')?.scrollIntoView({ behavior: 'smooth' });
+              }}>
+                Browse Webinars
+              </Button>
+            </div>
           </div>
 
+          {/* Featured Articles Section */}
+          {articles.length > 0 && (
+            <section className="mb-20">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Featured Articles</h2>
+                  <p className="text-muted-foreground">Expert insights and practical guides</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map((article) => (
+                  <Card key={article.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer">
+                    <div className="aspect-video relative overflow-hidden bg-muted">
+                      {article.image_url ? (
+                        <img 
+                          src={article.image_url} 
+                          alt={article.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="h-16 w-16 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      <Badge className="absolute top-3 right-3 bg-primary">
+                        {article.category}
+                      </Badge>
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
+                        {article.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-3">
+                        {article.summary}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {article.read_time || 5} min read
+                      </div>
+                      <Button variant="ghost" size="sm" className="group-hover:text-primary">
+                        Read More
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Webinars Showcase Section */}
+          <section id="webinars" className="mb-20 scroll-mt-20">
+            <div className="text-center mb-12">
+              <div className="inline-block p-3 rounded-full bg-accent/10 mb-4">
+                <Calendar className="h-6 w-6 text-accent" />
+              </div>
+              <h2 className="text-3xl font-bold mb-3">Upcoming Webinars</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Join expert-led sessions and interactive workshops. Learn from professionals and ask questions in real-time.
+              </p>
+            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            ) : webinars.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {webinars.map((webinar) => (
+                  <Card key={webinar.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
+                    <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
+                      {webinar.image_url ? (
+                        <img 
+                          src={webinar.image_url} 
+                          alt={webinar.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Video className="h-16 w-16 text-primary/50" />
+                        </div>
+                      )}
+                      <Badge className={`absolute top-3 right-3 ${webinar.is_paid ? 'bg-amber-500' : 'bg-green-500'}`}>
+                        {webinar.is_paid ? `Ksh ${webinar.price}` : 'Free'}
+                      </Badge>
+                    </div>
+                    <CardHeader>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Calendar className="h-4 w-4" />
+                        {format(new Date(webinar.date_time), 'MMM dd, yyyy · h:mm a')}
+                      </div>
+                      <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
+                        {webinar.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {webinar.description || 'Join this expert-led session to enhance your emergency response skills.'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center text-sm">
+                        <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="font-medium">{webinar.speaker}</span>
+                      </div>
+                      <Button 
+                        className="w-full group-hover:shadow-md transition-shadow" 
+                        onClick={() => {
+                          if (webinar.is_paid) {
+                            toast.info('Please log in to register for paid webinars');
+                            navigate('/auth');
+                          } else {
+                            toast.success('Redirecting to webinar registration...');
+                          }
+                        }}
+                      >
+                        {webinar.is_paid ? (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Register Now
+                          </>
+                        ) : (
+                          <>
+                            Join Free
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-12 text-center">
+                <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">No Upcoming Webinars</h3>
+                <p className="text-muted-foreground">Check back soon for new sessions</p>
+              </Card>
+            )}
+          </section>
+
           {/* General Steps Section */}
-          <div className="mb-20">
+          <section className="mb-20">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-3">General First Aid Steps</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -159,7 +374,7 @@ const Learn = () => {
                 </Card>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Watch & Learn Section */}
           <div className="mb-20">
@@ -202,62 +417,56 @@ const Learn = () => {
           </div>
 
           {/* Download Center */}
-          <div className="mb-12">
-            <div className="text-center mb-10">
-              <div className="inline-block p-3 rounded-full bg-secondary/10 mb-4">
-                <Download className="h-6 w-6 text-secondary" />
+          <section className="mb-20">
+            <div className="text-center mb-12">
+              <div className="inline-block p-3 rounded-full bg-accent/10 mb-4">
+                <Download className="h-6 w-6 text-accent" />
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-3">Download Center</h2>
+              <h2 className="text-3xl font-bold mb-3">Download Center</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Free first aid guides and resources for offline learning
+                Take our resources with you wherever you go
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {downloads.map((download, index) => (
-                <Card 
-                  key={index} 
-                  className="border-none shadow-card hover:shadow-lg transition-all duration-300 hover:border-primary/20"
-                >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {downloads.map((item, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow group">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <download.icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg mb-1">{download.title}</CardTitle>
-                          <CardDescription>{download.description}</CardDescription>
-                        </div>
-                      </div>
+                    <div className="p-4 rounded-lg bg-primary/10 w-fit mb-3 group-hover:bg-primary/20 transition-colors">
+                      <item.icon className="h-8 w-8 text-primary" />
                     </div>
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                      {item.title}
+                    </CardTitle>
+                    <CardDescription>{item.description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="flex items-center justify-between">
-                    <div className="flex gap-3 text-sm text-muted-foreground">
-                      <span className="px-2 py-1 rounded bg-muted font-medium">{download.format}</span>
-                      <span className="px-2 py-1 rounded bg-muted">{download.size}</span>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{item.format}</span>
+                      <span>{item.size}</span>
                     </div>
-                    <Button
-                      onClick={() => handleDownload(download.title)}
-                      disabled={downloading === download.title}
-                      className="rounded-full"
+                    <Button 
+                      onClick={() => handleDownload(item.title)}
+                      variant={downloading === item.title ? "secondary" : "default"}
+                      disabled={downloading === item.title}
+                      className="w-full"
                     >
-                      {downloading === download.title ? (
-                        <span className="flex items-center gap-2">
-                          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {downloading === item.title ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
                           Downloading...
-                        </span>
+                        </>
                       ) : (
-                        <span className="flex items-center gap-2">
-                          <Download className="h-4 w-4" />
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
                           Download
-                        </span>
+                        </>
                       )}
                     </Button>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Call to Action */}
           <Card className="max-w-3xl mx-auto bg-gradient-to-r from-primary to-secondary text-primary-foreground border-none shadow-xl">

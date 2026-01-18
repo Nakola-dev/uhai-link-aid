@@ -3,15 +3,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { QrCode, Copy, Package } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface QRToken {
+  id: string;
+  user_id: string;
+  access_token: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AdminQRProductsTabProps {
   onUpdate: () => void;
 }
 
 export const AdminQRProductsTab = ({ onUpdate }: AdminQRProductsTabProps) => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<QRToken[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,22 +32,25 @@ export const AdminQRProductsTab = ({ onUpdate }: AdminQRProductsTabProps) => {
     try {
       setLoading(true);
       
-      const [productsRes, ordersRes] = await Promise.all([
-        supabase.from('qr_products').select('*'),
-        supabase.from('qr_orders').select('*, profiles(full_name)').order('created_at', { ascending: false })
-      ]);
+      const { data, error } = await supabase
+        .from('qr_access_tokens')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (productsRes.error) throw productsRes.error;
-      if (ordersRes.error) throw ordersRes.error;
-
-      setProducts(productsRes.data || []);
-      setOrders(ordersRes.data || []);
+      if (error) throw error;
+      setTokens((data || []) as QRToken[]);
     } catch (error) {
       console.error('Error fetching QR data:', error);
-      toast.error('Failed to load QR products');
+      toast.error('Failed to load QR tokens');
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyToken = (accessToken: string) => {
+    navigator.clipboard.writeText(accessToken);
+    toast.success('Token copied to clipboard');
   };
 
   if (loading) {
@@ -52,89 +65,111 @@ export const AdminQRProductsTab = ({ onUpdate }: AdminQRProductsTabProps) => {
 
   return (
     <div className="space-y-6">
+      {/* QR Products Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>QR Products</CardTitle>
-          <CardDescription>Manage QR wristbands, cards, and other products</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                QR Products
+              </CardTitle>
+              <CardDescription>Available QR wristbands, cards, and tags</CardDescription>
+            </div>
+            <Button>Add Product</Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.length === 0 ? (
-              <p className="text-muted-foreground col-span-full text-center py-8">
-                No products available yet
-              </p>
-            ) : (
-              products.map((product) => (
-                <Card key={product.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription>{product.product_type}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Price:</span>
-                        <span className="font-semibold">KES {product.price}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Stock:</span>
-                        <Badge variant={product.stock_quantity > 10 ? 'default' : 'destructive'}>
-                          {product.stock_quantity}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Status:</span>
-                        <Badge variant={product.is_active ? 'default' : 'secondary'}>
-                          {product.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-dashed">
+              <CardContent className="p-4 text-center">
+                <QrCode className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium">QR Wristband</h4>
+                <p className="text-sm text-muted-foreground">KES 500</p>
+                <Badge className="mt-2" variant="secondary">Coming Soon</Badge>
+              </CardContent>
+            </Card>
+            <Card className="border-dashed">
+              <CardContent className="p-4 text-center">
+                <QrCode className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium">QR ID Card</h4>
+                <p className="text-sm text-muted-foreground">KES 350</p>
+                <Badge className="mt-2" variant="secondary">Coming Soon</Badge>
+              </CardContent>
+            </Card>
+            <Card className="border-dashed">
+              <CardContent className="p-4 text-center">
+                <QrCode className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium">QR Keychain Tag</h4>
+                <p className="text-sm text-muted-foreground">KES 250</p>
+                <Badge className="mt-2" variant="secondary">Coming Soon</Badge>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
 
+      {/* Active QR Tokens */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-          <CardDescription>QR product orders from users</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="h-5 w-5" />
+            Active QR Tokens
+          </CardTitle>
+          <CardDescription>All issued QR access tokens</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {orders.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No orders yet</p>
-            ) : (
-              orders.slice(0, 10).map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{order.profiles?.full_name || 'Unknown User'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Order #{order.id.slice(0, 8)} • {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-semibold">KES {order.total_price}</p>
-                      <p className="text-sm text-muted-foreground">Qty: {order.quantity}</p>
-                    </div>
-                    <Badge
-                      variant={
-                        order.order_status === 'delivered'
-                          ? 'default'
-                          : order.order_status === 'cancelled'
-                          ? 'destructive'
-                          : 'secondary'
-                      }
-                    >
-                      {order.order_status}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                <TableHead>Token</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tokens.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No QR tokens found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  tokens.map((token) => (
+                    <TableRow key={token.id}>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          {token.access_token.substring(0, 16)}...
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={token.is_active ? "default" : "secondary"}>
+                          {token.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(token.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(token.updated_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToken(token.access_token)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

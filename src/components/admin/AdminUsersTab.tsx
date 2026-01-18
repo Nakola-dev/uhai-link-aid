@@ -5,17 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, UserCog, Ban, CheckCircle, Mail, Phone } from 'lucide-react';
+import { Search, Ban, CheckCircle, Mail, Phone, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface User {
   id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  account_status: string;
-  subscription_tier: string;
-  created_at: string;
+  full_name: string | null;
+  phone: string | null;
+  city: string | null;
+  county: string | null;
+  updated_at: string | null;
 }
 
 interface AdminUsersTabProps {
@@ -37,7 +36,6 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
       const filtered = users.filter(
         (user) =>
           user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           user.phone?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredUsers(filtered);
@@ -51,8 +49,8 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, full_name, phone, city, county, updated_at')
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
       setUsers(data || []);
@@ -62,24 +60,6 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateUserStatus = async (userId: string, status: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ account_status: status })
-        .eq('id', userId);
-
-      if (error) throw error;
-      
-      toast.success(`User ${status === 'active' ? 'activated' : 'suspended'} successfully`);
-      fetchUsers();
-      onUpdate();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error('Failed to update user status');
     }
   };
 
@@ -103,7 +83,7 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users by name, email, or phone..."
+              placeholder="Search users by name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -117,9 +97,8 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Subscription</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -127,7 +106,7 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -136,10 +115,6 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="font-medium">{user.full_name || 'N/A'}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {user.email || 'No email'}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
@@ -148,48 +123,18 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.subscription_tier === 'premium' ? 'default' : 'secondary'}>
-                        {user.subscription_tier || 'free'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          user.account_status === 'active'
-                            ? 'default'
-                            : user.account_status === 'suspended'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
-                        {user.account_status || 'active'}
-                      </Badge>
+                      {user.city && user.county
+                        ? `${user.city}, ${user.county}`
+                        : user.city || user.county || 'N/A'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {user.account_status === 'active' ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateUserStatus(user.id, 'suspended')}
-                          >
-                            <Ban className="h-4 w-4 mr-1" />
-                            Suspend
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateUserStatus(user.id, 'active')}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Activate
-                          </Button>
-                        )}
-                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

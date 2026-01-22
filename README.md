@@ -1,4 +1,4 @@
-# 🏥 Uhai Assist Link
+# 🏥 UhaiLink
 
 **Empowering You to Act When Every Second Counts**
 
@@ -24,7 +24,7 @@ An AI-powered First Aid and Emergency Response platform designed to provide real
 
 ## 🌟 About the Project
 
-**Uhai Assist Link** is a modern, AI-driven emergency response platform that bridges the gap between emergencies and professional medical care. Whether you're facing a medical emergency or need quick first aid guidance, Uhai Assist Link provides instant, reliable support.
+**UhaiLink** is a modern, AI-driven emergency response platform that bridges the gap between emergencies and professional medical care. Whether you're facing a medical emergency or need quick first aid guidance, Uhai Assist Link provides instant, reliable support.
 
 ### Why Uhai Assist Link?
 
@@ -108,7 +108,7 @@ An AI-powered First Aid and Emergency Response platform designed to provide real
 ## 📁 Project Structure
 
 ```
-uhai-assist-link/
+UhaiLink/
 ├── public/
 │   ├── favicon.ico
 │   ├── robots.txt
@@ -169,7 +169,7 @@ uhai-assist-link/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/uhai-assist-link.git
+   git clone https://github.com/yourusername/uhailink.git
    cd uhai-assist-link
    ```
 

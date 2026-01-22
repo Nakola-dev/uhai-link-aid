@@ -24,9 +24,11 @@ An AI-powered First Aid and Emergency Response platform designed to provide real
 
 ## 🌟 About the Project
 
-**UhaiLink** is a modern, AI-driven emergency response platform that bridges the gap between emergencies and professional medical care. Whether you're facing a medical emergency or need quick first aid guidance, Uhai Assist Link provides instant, reliable support.
+**UhaiLink** is a modern, AI-driven emergency response platform that bridges the gap between emergencies and professional medical care. Whether you're facing a medical emergency or need quick first aid guidance, UhaiLink provides instant, reliable support designed specifically for Kenya's healthcare landscape.
 
-### Why Uhai Assist Link?
+Built with the understanding that every second counts in an emergency, UhaiLink combines AI-powered medical guidance, secure personal health profiles, and instant access to emergency services—all in one intuitive platform.
+
+### Why UhaiLink?
 
 - **Instant AI Guidance**: Get real-time first aid instructions powered by advanced AI models
 - **Personal Medical Profile**: Store vital health information securely in one place
@@ -38,37 +40,53 @@ An AI-powered First Aid and Emergency Response platform designed to provide real
 
 ## ✨ Key Features
 
-### 🤖 AI First Aid Assistant
-- Real-time conversational guidance for medical emergencies
-- Step-by-step first aid instructions
-- Powered by OpenRouter AI models for accurate, context-aware responses
+### 🤖 AI First Aid Assistant (Uhai Assist)
+Real-time AI-powered medical guidance for emergencies:
+- Step-by-step first aid instructions for CPR, bleeding, burns, choking, fractures, seizures, and allergic reactions
+- Context-aware responses using your personal medical information
+- Text-to-speech capability for hands-free operation during emergencies
+- Powered by OpenRouter AI models for accurate, reliable guidance
+- Multi-turn conversation support for complex medical situations
+
+### 📱 Medical QR System (Uhai QR ID)
+Secure emergency identification accessible to responders:
+- Auto-generated QR codes linked to your encrypted medical profile
+- Instant access for first responders and medical personnel
+- Stores critical info: blood type, allergies, chronic conditions, medications, emergency contacts
+- Download and print options for physical ID cards or use digital QR
+- Secure token-based access system
 
 ### 👤 Personal Medical Profile
-- Comprehensive health information storage
+Comprehensive health information management:
 - Blood type, allergies, medications, and medical conditions
 - Multiple emergency contacts with priority levels
-- Secure, cloud-based storage via Supabase
+- Medical history and treatment preferences
+- Secure, cloud-based storage via Supabase with Row Level Security
+- Easy-to-update interface for keeping information current
 
-### 📱 QR Code Emergency ID
-- Auto-generated QR code linked to your medical profile
-- Instant access for first responders and medical personnel
-- Download and print options for physical ID cards
+### 📚 First Aid Learning Center (Uhai Learn)
+Educational resources for life-saving skills:
+- **Video Tutorials**: Expert-demonstrated emergency procedures
+- **Interactive Guides**: Step-by-step first aid instructions categorized by emergency type
+- **Downloadable Materials**: E-books and PDF guides for offline access
+- **Search & Filter**: Quickly find relevant tutorials by emergency type
 
-### 📚 First Aid Learning Center
-- **General Steps**: Interactive cards with basic first aid procedures
-- **Video Tutorials**: Watch and learn from expert demonstrations
-- **Download Center**: Access e-books and PDF guides offline
+### 🏥 Emergency Services Directory (Uhai Emergency Directory)
+Verified emergency services network across Kenya:
+- Comprehensive directory of hospitals, ambulances, fire services, and NGOs
+- Direct contact information and service descriptions
+- Integration with major organizations: Kenya Red Cross, AMREF, St. John Ambulance
+- One-click calling from the app
+- Service location and hours information
 
-### 🏥 Emergency Organizations Directory
-- Comprehensive list of emergency services in Kenya
-- Hospitals, ambulance services, and emergency hotlines
-- Contact information and service descriptions
-
-### 👨‍💼 Admin Dashboard
-- User management with full CRUD operations
-- Tutorial and organization content management
-- Analytics and platform statistics
-- Secure role-based access control
+### 👨‍💼 Admin Dashboard (Uhai Admin)
+Comprehensive platform management interface:
+- **User Management**: View, manage, and monitor user accounts
+- **Tutorial Management**: Create, edit, and organize first aid tutorials
+- **Organizations Management**: Manage emergency service provider directory
+- **Analytics Dashboard**: Real-time platform statistics and activity tracking
+- **Activity Logs**: Comprehensive audit trail of all platform actions
+- **Role-Based Access Control**: Secure role-based permissions via Supabase RLS
 
 ---
 
@@ -213,13 +231,14 @@ UhaiLink/
    
    Navigate to `http://localhost:5173`
 
-### Default Admin Credentials
+### Accessing the Admin Dashboard
 
-To access the admin dashboard at `/dashboard/admin`:
-- **Email**: `admin@gmail.com`
-- **Password**: `admin123`
+To access the admin dashboard at `/admin`:
+- A valid admin role in the Supabase database is required
+- Admin features include user management, tutorial management, organization management, and system logs
+- Only users with admin role can access these features
 
-> ⚠️ **Important**: Change these credentials after first login in production!
+> ⚠️ **Important**: Always use strong credentials and implement proper role-based access control in production!
 
 ---
 
@@ -228,14 +247,15 @@ To access the admin dashboard at `/dashboard/admin`:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL | ✅ Yes |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anonymous key | ✅ Yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ Yes |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key | ✅ Yes |
 | `VITE_SUPABASE_PROJECT_ID` | Your Supabase project ID | ✅ Yes |
 
 ### Supabase Edge Function Secrets
 
 | Secret | Description | Required |
 |--------|-------------|----------|
-| `OPENROUTER_API_KEY` | OpenRouter API key for AI features | ✅ Yes (for AI) |
+| `OPENROUTER_API_KEY` | OpenRouter API key for AI features | ✅ Yes (for AI Assistant) |
 
 ---
 

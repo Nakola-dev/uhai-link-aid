@@ -205,12 +205,11 @@ UhaiLink/
    - Configure auto-confirm for email signups (Settings → Auth)
 
 4. **Configure environment variables**
-   
+
    Create a `.env` file in the root directory:
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
-   VITE_SUPABASE_PROJECT_ID=your_project_id
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 5. **Add OpenRouter API Key**
@@ -247,9 +246,7 @@ To access the admin dashboard at `/admin`:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL | ✅ Yes |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ Yes |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key | ✅ Yes |
-| `VITE_SUPABASE_PROJECT_ID` | Your Supabase project ID | ✅ Yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key (used for client authentication) | ✅ Yes |
 
 ### Supabase Edge Function Secrets
 

@@ -50,6 +50,43 @@ UhaiLink centralizes your critical medical information, makes it instantly acces
 
 ## ✨ Core Features
 
+### 🚨 Uhai Emergency SOS — Critical Emergency Response System
+**PHASE 1 FEATURE** - Real-time emergency response when every second counts:
+- **One-Tap Emergency Trigger**: Large, prominent SOS button on mobile
+- **Automatic Location Capture**: Uses browser Geolocation API to pinpoint your location
+- **Instant Contact Notification**: SMS alerts sent immediately to pre-configured emergency contacts
+- **Medical Context Injection**: SMS includes blood type, allergies, and emergency details
+- **Confirmation Modal**: Prevents accidental emergency triggers with confirmation requirement
+- **Real-Time Status**: See active incidents, resolution status, and incident history
+- **Responder Notes**: Admins can add context and updates to emergency records
+- **Emergency Incident Tracking**: Full audit trail of all emergency activations
+
+### 🔔 Real-Time Notifications — Multi-Channel Emergency Alerts
+**PHASE 1 FEATURE** - Reliable emergency contact notifications via multiple providers:
+- **SMS-First Strategy**: Primary notification via SMS (works in low-connectivity areas)
+- **Africa's Talking Integration**: Primary SMS provider with fallback to Twilio
+- **Multiple Contact Notifications**: Alert multiple emergency contacts simultaneously
+- **Delivery Tracking**: Log all notification attempts with delivery status
+- **Provider Redundancy**: Automatic failover if primary SMS provider is unavailable
+- **Personalized Messages**: Include user name, blood type, location, and timestamp
+- **Error Logging**: Detailed logging of failed notifications for debugging
+
+### 📝 Guided User Onboarding — Profile Completion Workflow
+**PHASE 1 FEATURE** - Multi-step profile setup wizard for new users:
+- **6-Step Progressive Onboarding**:
+  1. **Email Verification** - Confirm authenticated email
+  2. **Basic Information** - Collect name, phone, city, county
+  3. **Medical Information** - Blood type (required), allergies, medications, chronic conditions, primary hospital
+  4. **Emergency Contacts** - Add multiple contacts with name, phone, and relationship (minimum 1 required)
+  5. **QR ID Information** - Learn about sharing your emergency QR code
+  6. **Completion Confirmation** - Success message with link to dashboard
+- **Progress Tracking**: Visual progress bar showing completion percentage
+- **Per-Step Validation**: Required fields enforced before advancing
+- **Data Persistence**: Saves to profiles and emergency_contacts tables
+- **Pre-filled Forms**: Existing data auto-populated from profile
+- **Completion Enforcement**: Users cannot access dashboard until onboarding is complete
+- **Beautiful UI**: Gradient background, step indicators, smooth transitions
+
 ### 🤖 Uhai Assist — AI First Aid Assistant
 Real-time AI-powered emergency guidance when you need it most:
 - **Multi-turn Conversations**: Complex medical scenarios handled intelligently
@@ -67,6 +104,7 @@ Secure emergency identification accessible to responders instantly:
 - **One-Click Ordering**: QR Card (KSh 500), QR Wristband (KSh 800), Bundle (KSh 1,200)
 - **Regenerate Anytime**: Deactivate compromised codes instantly
 - **Secure Token System**: Public QR doesn't expose personal data; regenerate for privacy
+- **Scan Audit Logging**: Track every QR scan with IP, user agent, and timestamp
 
 ### 👤 Personal Medical Profile
 Comprehensive health information management in one secure location:
@@ -99,6 +137,7 @@ Verified emergency services network across Kenya:
 ### 🛡️ Uhai Admin — Admin Dashboard
 Comprehensive platform management interface for administrators:
 - **User Management**: View, monitor, manage, and support user accounts
+- **Emergency Response Dashboard**: Monitor active emergencies, track status updates, coordinate responses
 - **Content Management**: Create, edit, delete tutorials and learning materials
 - **Organization Directory**: Manage emergency service providers and verify data
 - **Analytics Dashboard**: Real-time platform statistics (user count, QR scans, AI usage, emergency calls guided)
@@ -133,6 +172,7 @@ uhailink/
 │   │   ├── public/              # Public-facing pages (no auth required)
 │   │   │   ├── Index.tsx        # Home page with hero & features
 │   │   │   ├── Auth.tsx         # Login & signup
+│   │   │   ├── Onboarding.tsx   # 6-step profile completion (PHASE 1)
 │   │   │   ├── Services.tsx     # Pricing & service tiers
 │   │   │   ├── Learn.tsx        # First aid learning hub
 │   │   │   ├── About.tsx        # About UhaiLink
@@ -143,6 +183,7 @@ uhailink/
 │   │   │   └── NotFound.tsx     # 404 page
 │   │   ├── user/                # User dashboard pages (auth required)
 │   │   │   ├── UserDashboard.tsx    # Main user dashboard
+│   │   │   ├── UserEmergency.tsx    # Emergency SOS interface (PHASE 1)
 │   │   │   ├── UserProfilePage.tsx  # Comprehensive profile editor
 │   │   │   ├── UserQRPage.tsx       # QR code management & sharing
 │   │   │   ├── UserLearn.tsx        # Personalized learning
@@ -213,6 +254,15 @@ uhailink/
   - Row Level Security (RLS) for data protection
   - PostgreSQL functions for business logic
   - File storage for tutorials and materials
+  - **Phase 1 Tables**:
+    - `emergency_incidents` - Tracks emergency triggers with location, medical context, status
+    - `notifications` - Logs SMS/email/push delivery attempts with provider and status
+    - `qr_scans` - Audit trail of all QR code accesses with IP, user agent, timestamp
+  - **Phase 1 Fields**:
+    - `profiles.onboarding_completed` - Boolean flag for onboarding completion
+    - `profiles.onboarding_completed_at` - Timestamp of onboarding completion
+- **Supabase Edge Functions** — Serverless functions for SMS notifications
+  - `send-emergency-sms` - Triggers SMS notifications to emergency contacts (Africa's Talking + Twilio)
 - **OpenRouter** — AI model access (first aid guidance)
 
 ### Development
@@ -410,7 +460,60 @@ A: Basic features are free. Premium plans ($4.99/month for individuals) unlock u
 
 ---
 
-## 🔮 Future Enhancements
+## � Development Roadmap
+
+### Phase 1: Critical Life-Saving Features ✅ (COMPLETE)
+
+**Objective**: Implement emergency response, real-time notifications, and guided onboarding.
+
+**Completed Features**:
+- ✅ Supabase schema with `emergency_incidents`, `notifications`, `qr_scans` tables
+- ✅ Emergency SOS Page (`/dashboard/emergency`) - One-tap emergency trigger with geolocation
+- ✅ Guided Onboarding Wizard (`/onboarding`) - 6-step profile completion
+- ✅ SMS Edge Function (`send-emergency-sms`) - Africa's Talking + Twilio integration
+- ✅ Protected Routes - Auth & onboarding enforcement via ProtectedRoute wrapper
+- ✅ Real-Time Notifications - SMS alerts to emergency contacts with delivery tracking
+
+**Status**: ✅ PRODUCTION-READY - All Phase 1 features complete and tested.
+
+### Phase 2: Core Platform Completion ✅ (COMPLETE)
+
+**Objective**: Build AI assistant, enhance QR system, and create admin emergency dashboard.
+
+**Completed Features**:
+- ✅ **AI Chat Interface** (`/dashboard/assistant`) - Real chat UI with message history and medical context injection using OpenRouter
+- ✅ **QR Scan Audit Logging** - Enhanced tracking with rate limiting (5 scans/min per IP), IP logging, user agent tracking
+- ✅ **Admin Emergency Dashboard** (`/admin/emergencies`) - Live emergency view with status updates, responder notes, search/filter
+- ✅ **Chat History Table** (`chat_history`) - Persistent message storage with Supabase RLS protection
+- ✅ **Rate Limiting** - Prevents QR abuse (5 scans per minute from single IP)
+
+**New Features in Phase 2**:
+- 🤖 **AI First Aid Guidance**: Context-aware first aid instructions based on user medical profile
+- 💬 **Chat History**: Persistent conversation storage for continued guidance sessions
+- 👨‍⚕️ **Admin Emergency Response**: Real-time incident management with status tracking and responder notes
+- 📊 **Emergency Statistics**: Dashboard showing active, escalated, and resolved incident counts
+- 🔍 **Search & Filter**: Find incidents by name, phone, location, or incident ID
+- 🛡️ **Access Control**: Rate limiting and IP-based audit trail for QR scans
+
+**Status**: ✅ PRODUCTION-READY - All Phase 2 features complete and tested.
+
+### Phase 3: Advanced Features (Future)
+
+**Features**:
+- [ ] **Mobile App** - React Native for iOS and Android
+- [ ] **Offline Mode** - Access critical data without internet connection
+- [ ] **Multi-Language Support** - Swahili, Kikuyu, and other local languages
+- [ ] **Wearable Integration** - Apple Watch, Fitbit, smartwatch sync
+- [ ] **Voice Assistant** - Hands-free emergency guidance via speech-to-text
+- [ ] **Hospital Integration** - Direct integration with hospital emergency systems
+- [ ] **Geolocation Services** - Find nearest hospitals and emergency services
+- [ ] **Medical History Export** - Download data in standard formats
+- [ ] **Symptom Checker** - AI-powered preliminary assessment
+- [ ] **Blockchain Verification** - Verify medical credentials and certifications
+
+---
+
+## �🔮 Future Enhancements
 
 ### Planned Features
 - [ ] **Mobile App** - React Native version for iOS and Android

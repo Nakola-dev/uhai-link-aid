@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/shared/use-toast';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  user: {
+  user?: {
     full_name?: string;
     profile_photo_url?: string;
   } | null;

@@ -224,6 +224,62 @@ CREATE TABLE IF NOT EXISTS public.analytics (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+-- PHASE 1 TABLES
+
+-- Create emergency_incidents table (Critical SOS feature)
+CREATE TABLE IF NOT EXISTS public.emergency_incidents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  incident_type TEXT,
+  severity TEXT DEFAULT 'unknown',
+  location_lat DECIMAL(10, 8),
+  location_lng DECIMAL(11, 8),
+  location_address TEXT,
+  medical_context JSONB,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active', -- active, resolved, escalated
+  triggered_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  responder_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create notifications table (SMS/Email tracking)
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  emergency_incident_id UUID REFERENCES public.emergency_incidents(id) ON DELETE SET NULL,
+  recipient_name TEXT NOT NULL,
+  recipient_phone TEXT NOT NULL,
+  message_text TEXT NOT NULL,
+  notification_type TEXT NOT NULL, -- 'sms', 'email', 'push'
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'sent', 'failed', 'delivered'
+  provider TEXT, -- 'africas_talking', 'twilio', 'sendgrid'
+  external_id TEXT,
+  error_message TEXT,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  delivered_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create qr_scans table (QR access audit log)
+CREATE TABLE IF NOT EXISTS public.qr_scans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  qr_token_id UUID NOT NULL REFERENCES public.qr_access_tokens(id) ON DELETE CASCADE,
+  ip_address TEXT,
+  user_agent TEXT,
+  responder_name TEXT,
+  responder_id TEXT,
+  scanned_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Update profiles table to add Phase 1 fields
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP WITH TIME ZONE;
+
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER
@@ -487,6 +543,66 @@ CREATE POLICY "Admins can insert analytics"
   ON public.analytics FOR INSERT
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
+-- Enable RLS on Phase 1 tables
+ALTER TABLE public.emergency_incidents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.qr_scans ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for emergency_incidents
+CREATE POLICY "Users can view their own emergency incidents"
+  ON public.emergency_incidents FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own emergency incidents"
+  ON public.emergency_incidents FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own emergency incidents"
+  ON public.emergency_incidents FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all emergency incidents"
+  ON public.emergency_incidents FOR SELECT
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can manage all emergency incidents"
+  ON public.emergency_incidents FOR ALL
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- RLS Policies for notifications
+CREATE POLICY "Users can view their own notifications"
+  ON public.notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all notifications"
+  ON public.notifications FOR SELECT
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can manage all notifications"
+  ON public.notifications FOR ALL
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- RLS Policies for qr_scans (audit log)
+CREATE POLICY "Users can view QR scans of their own tokens"
+  ON public.qr_scans FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.qr_access_tokens
+    WHERE id = qr_token_id AND user_id = auth.uid()
+  ));
+
+CREATE POLICY "Admins can view all QR scans"
+  ON public.qr_scans FOR SELECT
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Anyone can insert QR scans (public access)"
+  ON public.qr_scans FOR INSERT
+  WITH CHECK (true);
+
 -- Create triggers for updated_at timestamps
 CREATE TRIGGER update_profiles_updated_at
 BEFORE UPDATE ON public.profiles
@@ -536,6 +652,14 @@ CREATE TRIGGER update_organization_services_updated_at
 BEFORE UPDATE ON public.organization_services
 FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+CREATE TRIGGER update_emergency_incidents_updated_at
+BEFORE UPDATE ON public.emergency_incidents
+FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER update_notifications_updated_at
+BEFORE UPDATE ON public.notifications
+FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 -- Create trigger for auth.users to auto-create profile
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
@@ -558,6 +682,14 @@ CREATE INDEX idx_admin_logs_entity_type ON public.admin_logs(entity_type);
 CREATE INDEX idx_analytics_metric_key ON public.analytics(metric_key);
 CREATE INDEX idx_analytics_date_recorded ON public.analytics(date_recorded);
 CREATE INDEX idx_organization_services_organization_id ON public.organization_services(organization_id);
+CREATE INDEX idx_emergency_incidents_user_id ON public.emergency_incidents(user_id);
+CREATE INDEX idx_emergency_incidents_status ON public.emergency_incidents(status);
+CREATE INDEX idx_emergency_incidents_created_at ON public.emergency_incidents(created_at);
+CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX idx_notifications_emergency_incident_id ON public.notifications(emergency_incident_id);
+CREATE INDEX idx_notifications_status ON public.notifications(status);
+CREATE INDEX idx_qr_scans_qr_token_id ON public.qr_scans(qr_token_id);
+CREATE INDEX idx_qr_scans_created_at ON public.qr_scans(created_at);
 
 -- Insert seed data for emergency organizations
 INSERT INTO public.emergency_organizations (name, type, phone, email) VALUES
@@ -573,3 +705,52 @@ INSERT INTO public.tutorials (title, description, video_url) VALUES
   ('Sharing Your QR Code', 'Learn how to print, wear, or share your QR code safely', 'https://youtube.com/watch?v=demo2'),
   ('What Responders See', 'Demo of what emergency responders can access', 'https://youtube.com/watch?v=demo3'),
   ('Managing Emergency Contacts', 'Add and update your emergency contact information', 'https://youtube.com/watch?v=demo4');
+-- ========================================
+-- PHASE 2: CORE PLATFORM COMPLETION TABLES
+-- ========================================
+
+-- Chat History for AI Assistant
+CREATE TABLE IF NOT EXISTS public.chat_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  session_start TIMESTAMP DEFAULT NOW(),
+  messages JSONB DEFAULT '[]'::jsonb, -- Array of {role, content, timestamp}
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_history_user_id ON public.chat_history(user_id);
+CREATE INDEX idx_chat_history_created_at ON public.chat_history(created_at);
+
+-- RLS Policies for chat_history
+ALTER TABLE public.chat_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own chat history"
+  ON public.chat_history FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own chat messages"
+  ON public.chat_history FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own chat history"
+  ON public.chat_history FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all chat history"
+  ON public.chat_history FOR SELECT
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Trigger for chat_history updated_at
+CREATE TRIGGER update_chat_history_timestamp BEFORE UPDATE ON public.chat_history
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Enhanced QR Scans table with rate limiting metadata
+ALTER TABLE public.qr_scans ADD COLUMN IF NOT EXISTS scan_count INTEGER DEFAULT 1;
+ALTER TABLE public.qr_scans ADD COLUMN IF NOT EXISTS last_scan_time TIMESTAMP;
+ALTER TABLE public.qr_scans ADD COLUMN IF NOT EXISTS access_granted BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.qr_scans ADD COLUMN IF NOT EXISTS denial_reason TEXT;
+
+-- Additional index for rate limiting checks
+CREATE INDEX IF NOT EXISTS idx_qr_scans_ip_address ON public.qr_scans(ip_address, created_at);
+CREATE INDEX IF NOT EXISTS idx_qr_scans_access_granted ON public.qr_scans(access_granted, created_at);

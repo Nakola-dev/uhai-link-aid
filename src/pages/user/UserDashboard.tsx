@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, BookOpen, Video } from 'lucide-react';
@@ -85,7 +85,7 @@ const UserDashboard = () => {
         {/* Welcome Section */}
         <div>
           <h1 className="text-4xl font-bold mb-2">
-            Welcome back, {profile?.full_name || 'User'}!
+            Welcome back, {String((profile as any)?.full_name) || 'User'}!
           </h1>
           <p className="text-muted-foreground">
             Your personal health and emergency dashboard
@@ -135,15 +135,15 @@ const UserDashboard = () => {
             <div className="space-y-4">
               {organizations.length > 0 ? (
                 organizations.map((org) => (
-                  <div key={org.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div key={String((org as any)?.id)} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div>
-                      <p className="font-semibold">{org.name}</p>
-                      <p className="text-sm text-muted-foreground">{org.type}</p>
+                      <p className="font-semibold">{String((org as any)?.name)}</p>
+                      <p className="text-sm text-muted-foreground">{String((org as any)?.type)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-primary">{org.phone}</p>
-                      {org.email && (
-                        <p className="text-xs text-muted-foreground">{org.email}</p>
+                      <p className="font-bold text-primary">{String((org as any)?.phone)}</p>
+                      {(org as any)?.email && (
+                        <p className="text-xs text-muted-foreground">{String((org as any)?.email)}</p>
                       )}
                     </div>
                   </div>
@@ -172,17 +172,17 @@ const UserDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tutorials.length > 0 ? (
                 tutorials.map((tutorial) => (
-                  <Card key={tutorial.id} className="border border-border/50">
+                  <Card key={String((tutorial as any)?.id)} className="border border-border/50">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-base">{tutorial.title}</CardTitle>
+                      <CardTitle className="text-base">{String((tutorial as any)?.title)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {tutorial.description || 'Watch this tutorial to learn more'}
+                        {String((tutorial as any)?.description) || 'Watch this tutorial to learn more'}
                       </p>
-                      {tutorial.video_url && (
+                      {(tutorial as any)?.video_url && (
                         <a
-                          href={tutorial.video_url}
+                          href={String((tutorial as any)?.video_url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-primary hover:underline inline-flex items-center"

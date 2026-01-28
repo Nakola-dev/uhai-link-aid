@@ -167,6 +167,8 @@ export type Database = {
           gender: string | null
           id: string
           medications: string[] | null
+          onboarding_completed: boolean | null
+          onboarding_completed_at: string | null
           phone: string | null
           primary_hospital: string | null
           profile_photo_url: string | null
@@ -187,6 +189,8 @@ export type Database = {
           gender?: string | null
           id: string
           medications?: string[] | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           primary_hospital?: string | null
           profile_photo_url?: string | null
@@ -207,6 +211,8 @@ export type Database = {
           gender?: string | null
           id?: string
           medications?: string[] | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           primary_hospital?: string | null
           profile_photo_url?: string | null
@@ -372,6 +378,217 @@ export type Database = {
           url?: string | null
         }
         Relationships: []
+      }
+      emergency_incidents: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          incident_type: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          medical_context: Json | null
+          responder_notes: string | null
+          resolved_at: string | null
+          severity: number
+          status: string
+          triggered_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_type?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          medical_context?: Json | null
+          responder_notes?: string | null
+          resolved_at?: string | null
+          severity?: number
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          incident_type?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          medical_context?: Json | null
+          responder_notes?: string | null
+          resolved_at?: string | null
+          severity?: number
+          status?: string
+          triggered_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_incidents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          emergency_incident_id: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          message_text: string | null
+          notification_type: string
+          provider: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          emergency_incident_id?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_text?: string | null
+          notification_type: string
+          provider?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          emergency_incident_id?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_text?: string | null
+          notification_type?: string
+          provider?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_emergency_incident_id_fkey"
+            columns: ["emergency_incident_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      qr_scans: {
+        Row: {
+          access_granted: boolean
+          created_at: string
+          denial_reason: string | null
+          id: string
+          ip_address: string | null
+          last_scan_time: string | null
+          qr_token_id: string
+          responder_id: string | null
+          responder_name: string | null
+          scan_count: number
+          scanned_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          access_granted?: boolean
+          created_at?: string
+          denial_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          last_scan_time?: string | null
+          qr_token_id: string
+          responder_id?: string | null
+          responder_name?: string | null
+          scan_count?: number
+          scanned_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          access_granted?: boolean
+          created_at?: string
+          denial_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          last_scan_time?: string | null
+          qr_token_id?: string
+          responder_id?: string | null
+          responder_name?: string | null
+          scan_count?: number
+          scanned_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      chat_history: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json | null
+          session_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json | null
+          session_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json | null
+          session_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {

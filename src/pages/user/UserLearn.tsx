@@ -93,7 +93,7 @@ const UserLearn = () => {
         const progressMap: Record<string, ProgressData> = {};
         progressRes.data.forEach((p: Record<string, unknown>) => {
           const tutorialId = p.tutorial_id as string;
-          progressMap[tutorialId] = p as ProgressData;
+          progressMap[tutorialId] = p as unknown as ProgressData;
         });
         setProgress(progressMap);
       }

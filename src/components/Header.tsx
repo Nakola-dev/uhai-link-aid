@@ -16,7 +16,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -65,9 +65,9 @@ const Header = () => {
   ];
 
   const dashboardLinks = [
-    { to: '/dashboard/user', label: 'Dashboard' },
-    { to: '/dashboard/user/profile', label: 'Profile' },
-    { to: '/dashboard/user/qr', label: 'My QR' },
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/dashboard/profile', label: 'Profile' },
+    { to: '/dashboard/qr', label: 'My QR' },
   ];
 
   const links = user ? dashboardLinks : publicLinks;
@@ -111,9 +111,9 @@ const Header = () => {
             ))}
             {user && profile?.role === 'admin' && (
               <Link
-                to="/dashboard/admin"
+                to="/admin"
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  isActive('/dashboard/admin')
+                  isActive('/admin') || isActive('/dashboard/admin')
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'text-foreground hover:bg-primary/10 hover:text-primary'
                 }`}
@@ -147,7 +147,7 @@ const Header = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/dashboard/user/profile" className="flex items-center cursor-pointer">
+                      <Link to="/dashboard/profile" className="flex items-center cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>

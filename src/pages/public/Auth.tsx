@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/dashboard/user');
+        navigate('/dashboard');
       }
     });
   }, [navigate]);
@@ -38,7 +38,7 @@ const Auth = () => {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/dashboard/user`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -46,10 +46,11 @@ const Auth = () => {
 
       if (data.user) {
         toast.success('Account created successfully! Welcome to UhaiLink.');
-        navigate('/dashboard/user');
+        navigate('/dashboard');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to create account';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -69,10 +70,11 @@ const Auth = () => {
 
       if (data.session) {
         toast.success('Welcome back!');
-        navigate('/dashboard/user');
+        navigate('/dashboard');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

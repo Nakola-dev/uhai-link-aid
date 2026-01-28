@@ -2,7 +2,7 @@ import { Shield, Users, Heart, Target, Zap, Brain, Radio, MapPin, FileText, Tren
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 import { Link } from 'react-router-dom';
 
 const About = () => {

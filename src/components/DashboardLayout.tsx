@@ -16,7 +16,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/shared/use-toast';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -47,12 +47,12 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/user' },
-    { icon: BookOpen, label: 'Learn', path: '/dashboard/user/learn' },
-    { icon: User, label: 'My Profile', path: '/dashboard/user/profile' },
-    { icon: Bot, label: 'AI Assistant', path: '/dashboard/user/assistant' },
-    { icon: CreditCard, label: 'Buy QR Tag', path: '/dashboard/user/buy-qr' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/user/settings' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: BookOpen, label: 'Learn', path: '/dashboard/learn' },
+    { icon: User, label: 'My Profile', path: '/dashboard/profile' },
+    { icon: Bot, label: 'AI Assistant', path: '/dashboard/assistant' },
+    { icon: CreditCard, label: 'Buy QR Tag', path: '/dashboard/buy-qr' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -69,7 +69,7 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-border">
-            <Link to="/dashboard/user" className="flex items-center space-x-2">
+            <Link to="/dashboard" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">U</span>
               </div>

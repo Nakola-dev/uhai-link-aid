@@ -6,13 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Download, RefreshCw, Copy, Printer, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/shared/DashboardLayout';
 
 const UserQRPage = () => {
   const [loading, setLoading] = useState(true);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
@@ -45,7 +45,7 @@ const UserQRPage = () => {
         // Generate new token if none exists
         await generateNewToken();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load QR code');
       console.error('Error:', error);
     } finally {
@@ -74,7 +74,7 @@ const UserQRPage = () => {
 
       setQrToken(data.access_token);
       return data.access_token;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to generate QR code');
       throw error;
     }
@@ -93,7 +93,7 @@ const UserQRPage = () => {
   };
 
   const handleDownload = () => {
-    const svg = document.getElementById('qr-code') as any;
+    const svg = document.getElementById('qr-code') as HTMLElement | null;
     if (!svg) return;
 
     const svgData = new XMLSerializer().serializeToString(svg);
@@ -144,7 +144,7 @@ const UserQRPage = () => {
   return (
     <DashboardLayout user={user} isAdmin={isAdmin}>
       <div className="max-w-4xl mx-auto space-y-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard/user')} className="mb-4 no-print">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4 no-print">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>

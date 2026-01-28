@@ -12,10 +12,10 @@ interface AdminContentTabProps {
 }
 
 export const AdminContentTab = ({ onUpdate }: AdminContentTabProps) => {
-  const [tutorials, setTutorials] = useState<any[]>([]);
-  const [articles, setArticles] = useState<any[]>([]);
-  const [webinars, setWebinars] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
+  const [tutorials, setTutorials] = useState<Record<string, unknown>[]>([]);
+  const [articles, setArticles] = useState<Record<string, unknown>[]>([]);
+  const [webinars, setWebinars] = useState<Record<string, unknown>[]>([]);
+  const [materials, setMaterials] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

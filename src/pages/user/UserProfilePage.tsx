@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ArrowLeft, Plus, Trash2, User, Heart, Phone as PhoneIcon, QrCode as QrCodeIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/shared/DashboardLayout';
 import { QRCodeSVG } from 'qrcode.react';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,7 +25,7 @@ const UserProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState('');
   const [qrToken, setQrToken] = useState('');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
@@ -111,7 +111,7 @@ const UserProfilePage = () => {
       } else {
         await generateQRToken(session.user.id);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load profile');
       console.error(error);
     } finally {
@@ -129,7 +129,7 @@ const UserProfilePage = () => {
       if (error) throw error;
       setQrToken(token);
       toast.success('QR code generated!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to generate QR code');
     }
   };
@@ -249,9 +249,10 @@ const UserProfilePage = () => {
       }
 
       toast.success('Profile updated successfully!');
-      navigate('/dashboard/user');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+        navigate('/dashboard');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -300,7 +301,7 @@ const UserProfilePage = () => {
   return (
     <DashboardLayout user={user} isAdmin={isAdmin}>
       <div className="max-w-5xl mx-auto space-y-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard/user')} className="mb-4">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
@@ -587,7 +588,7 @@ const UserProfilePage = () => {
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/dashboard/user')}>
+              <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
                 Cancel
               </Button>
             </div>

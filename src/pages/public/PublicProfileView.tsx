@@ -15,11 +15,11 @@ import {
   Loader2,
   AlertCircle 
 } from 'lucide-react';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 
 const PublicProfileView = () => {
   const { token } = useParams<{ token: string }>();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +61,7 @@ const PublicProfileView = () => {
       if (profileError) throw profileError;
 
       setProfile(profileData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError('Failed to load profile information');
       console.error('Error:', error);
     } finally {

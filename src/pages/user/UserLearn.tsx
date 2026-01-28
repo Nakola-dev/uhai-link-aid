@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/shared/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlayCircle, CheckCircle2, Clock, BookOpen, Download, Calendar, User, CreditCard, Sparkles, FileText, ArrowRight } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/shared/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -56,7 +56,7 @@ const UserLearn = () => {
   const [progress, setProgress] = useState<Record<string, ProgressData>>({});
   const [materials, setMaterials] = useState<DownloadableMaterial[]>([]);
   const [webinars, setWebinars] = useState<Webinar[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const { toast } = useToast();
@@ -91,8 +91,9 @@ const UserLearn = () => {
       
       if (progressRes.data) {
         const progressMap: Record<string, ProgressData> = {};
-        progressRes.data.forEach((p: any) => {
-          progressMap[p.tutorial_id] = p;
+        progressRes.data.forEach((p: Record<string, unknown>) => {
+          const tutorialId = p.tutorial_id as string;
+          progressMap[tutorialId] = p as ProgressData;
         });
         setProgress(progressMap);
       }
@@ -213,7 +214,7 @@ const UserLearn = () => {
             </p>
           </div>
           <Button 
-            onClick={() => navigate('/dashboard/user/assistant')}
+            onClick={() => navigate('/dashboard/assistant')}
             className="group"
           >
             <Sparkles className="h-4 w-4 mr-2" />

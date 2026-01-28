@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/shared/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, BookOpen, Video } from 'lucide-react';
 
 const UserDashboard = () => {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [tutorials, setTutorials] = useState<any[]>([]);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
+  const [organizations, setOrganizations] = useState<Record<string, unknown>[]>([]);
+  const [tutorials, setTutorials] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
@@ -200,7 +200,7 @@ const UserDashboard = () => {
                 </p>
               )}
             </div>
-            <Button className="w-full mt-4" onClick={() => navigate('/dashboard/user/learn')}>
+            <Button className="w-full mt-4" onClick={() => navigate('/dashboard/learn')}>
               View All Tutorials
             </Button>
           </CardContent>

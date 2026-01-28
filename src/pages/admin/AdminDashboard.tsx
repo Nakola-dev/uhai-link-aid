@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, Users, ArrowLeft, Loader2, QrCode, Search, Edit, Trash2, Plus, Building, BookOpen, Activity } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 
 interface UserProfile {
   id: string;
@@ -85,15 +85,15 @@ const AdminDashboard = () => {
 
       if (!data) {
         toast.error('Access denied. Admin privileges required.');
-        navigate('/dashboard/user');
+        navigate('/dashboard');
         return;
       }
 
       setIsAdmin(true);
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to verify admin access');
-      navigate('/dashboard/user');
+      navigate('/dashboard');
     } finally {
       setLoading(false);
     }
@@ -148,7 +148,7 @@ const AdminDashboard = () => {
         tutorials: tutorialsData?.length || 0,
         qrIssued: qrCount || 0,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load data');
       console.error('Error:', error);
     }
@@ -165,7 +165,7 @@ const AdminDashboard = () => {
 
       toast.success('User deleted successfully');
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete user');
     }
   };
@@ -188,7 +188,7 @@ const AdminDashboard = () => {
       }
       setEditingTutorial(null);
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to save tutorial');
     }
   };
@@ -200,7 +200,7 @@ const AdminDashboard = () => {
       if (error) throw error;
       toast.success('Tutorial deleted');
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete tutorial');
     }
   };
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
       }
       setEditingOrg(null);
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to save organization');
     }
   };
@@ -235,7 +235,7 @@ const AdminDashboard = () => {
       if (error) throw error;
       toast.success('Organization deleted');
       await fetchAllData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete organization');
     }
   };
@@ -258,7 +258,7 @@ const AdminDashboard = () => {
       } else {
         toast.error('User has no active QR code');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to get QR token');
     }
   };
@@ -277,7 +277,7 @@ const AdminDashboard = () => {
     <Layout>
       <div className="py-8 md:py-12">
         <div className="container mx-auto px-4">
-          <Button variant="ghost" onClick={() => navigate('/dashboard/user')} className="mb-4">
+          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
@@ -381,7 +381,7 @@ const AdminDashboard = () => {
                           <Button variant="ghost" size="sm" onClick={() => getQRToken(user.id)}>
                             <QrCode className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/user/profile`)}>
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/profile`)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => deleteUser(user.id)}>

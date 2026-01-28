@@ -1,309 +1,412 @@
 # 🏥 UhaiLink
 
-**Empowering You to Act When Every Second Counts**
+> **Empowering You to Act When Every Second Counts**
 
-An AI-powered First Aid and Emergency Response platform designed to provide real-time medical guidance, store critical health information, and connect users with emergency services across Kenya.
+An AI-powered, offline-aware emergency response platform designed to provide real-time medical guidance, secure critical health information, and connect users with verified emergency services. Built for Kenya, designed for the world.
+
+---
+
+## 🎯 Mission Statement
+
+**"To bridge the critical gap between emergency, information, and action—when every second matters."**
 
 ---
 
 ## 📋 Table of Contents
 
-- [About the Project](#about-the-project)
-- [Key Features](#key-features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Deployment](#deployment)
-- [Screenshots](#screenshots)
-- [Future Enhancements](#future-enhancements)
-- [Contributors](#contributors)
-- [License](#license)
+- [About UhaiLink](#about-uhailink)
+- [Core Features](#-core-features)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Support](#-support)
 
 ---
 
-## 🌟 About the Project
+## 🌟 About UhaiLink
 
-**UhaiLink** is a modern, AI-driven emergency response platform that bridges the gap between emergencies and professional medical care. Whether you're facing a medical emergency or need quick first aid guidance, UhaiLink provides instant, reliable support designed specifically for Kenya's healthcare landscape.
+**UhaiLink** is a comprehensive emergency response ecosystem that combines cutting-edge AI, secure data management, and mobile-first design to transform how people handle medical emergencies.
 
-Built with the understanding that every second counts in an emergency, UhaiLink combines AI-powered medical guidance, secure personal health profiles, and instant access to emergency services—all in one intuitive platform.
+### The Problem We Solve
+In emergencies, critical seconds are lost gathering medical information. Individuals with chronic conditions, allergies, or complex medical histories may be unconscious, unable to communicate. Emergency responders lack instant access to essential medical data. Families don't know how to help. Lives are lost.
+
+### Our Solution
+UhaiLink centralizes your critical medical information, makes it instantly accessible to first responders via QR codes, provides AI-guided first aid support, and connects you with verified emergency services—all offline-ready, secure, and designed for low-connectivity environments.
 
 ### Why UhaiLink?
 
-- **Instant AI Guidance**: Get real-time first aid instructions powered by advanced AI models
-- **Personal Medical Profile**: Store vital health information securely in one place
-- **Emergency QR Code**: Quick access to your medical profile for first responders
-- **Educational Resources**: Learn life-saving skills through interactive tutorials
-- **Emergency Directory**: Connect with verified emergency organizations across Kenya
+- 🚀 **Speed Matters**: Instant medical profile access for first responders (scan QR code, no internet required for basic info)
+- 🤖 **AI-Powered Guidance**: Real-time first aid instructions adapted to your specific medical history
+- 🔒 **Security First**: End-to-end encrypted profiles, token-based access, Row Level Security (Supabase RLS)
+- 📱 **Offline Ready**: Core features work without internet; sync when available
+- 🌍 **Local Context**: Emergency services directory for Kenya; scalable to other regions
+- 👥 **For Everyone**: Individual users, families, corporate teams, universities, hospitals
 
 ---
 
-## ✨ Key Features
+## ✨ Core Features
 
-### 🤖 AI First Aid Assistant (Uhai Assist)
-Real-time AI-powered medical guidance for emergencies:
-- Step-by-step first aid instructions for CPR, bleeding, burns, choking, fractures, seizures, and allergic reactions
-- Context-aware responses using your personal medical information
-- Text-to-speech capability for hands-free operation during emergencies
-- Powered by OpenRouter AI models for accurate, reliable guidance
-- Multi-turn conversation support for complex medical situations
+### 🤖 Uhai Assist — AI First Aid Assistant
+Real-time AI-powered emergency guidance when you need it most:
+- **Multi-turn Conversations**: Complex medical scenarios handled intelligently
+- **Step-by-Step Instructions**: CPR, bleeding control, burns, choking, fractures, seizures, allergic reactions
+- **Context-Aware Responses**: Uses your medical history, allergies, and medications for personalized guidance
+- **Voice & Text Support**: Chat interface and hands-free voice guidance for emergencies
+- **Powered by OpenRouter AI**: Reliable, accurate, medical-trained models
+- **Offline Modules** (Premium): Access critical instructions without internet
 
-### 📱 Medical QR System (Uhai QR ID)
-Secure emergency identification accessible to responders:
-- Auto-generated QR codes linked to your encrypted medical profile
-- Instant access for first responders and medical personnel
-- Stores critical info: blood type, allergies, chronic conditions, medications, emergency contacts
-- Download and print options for physical ID cards or use digital QR
-- Secure token-based access system
+### 📱 Uhai QR ID — Medical QR System
+Secure emergency identification accessible to responders instantly:
+- **Auto-Generated QR Codes**: Unique, encrypted token-based access
+- **Multiple Formats**: Digital (phone), physical card (wallet-sized), wristband, keychain
+- **First Responder Access**: Scan → instant medical profile (blood type, allergies, medications, emergency contacts)
+- **One-Click Ordering**: QR Card (KSh 500), QR Wristband (KSh 800), Bundle (KSh 1,200)
+- **Regenerate Anytime**: Deactivate compromised codes instantly
+- **Secure Token System**: Public QR doesn't expose personal data; regenerate for privacy
 
 ### 👤 Personal Medical Profile
-Comprehensive health information management:
-- Blood type, allergies, medications, and medical conditions
-- Multiple emergency contacts with priority levels
-- Medical history and treatment preferences
-- Secure, cloud-based storage via Supabase with Row Level Security
-- Easy-to-update interface for keeping information current
+Comprehensive health information management in one secure location:
+- **Core Medical Data**: Blood type, allergies, medications, chronic conditions
+- **Medical History**: Past treatments, surgeries, hospitalizations
+- **Emergency Contacts**: Multiple contacts with priority levels and relationship types
+- **Medical Preferences**: Hospital preferences, treatment authorizations, DNR status
+- **Secure Cloud Storage**: Supabase with Row Level Security (only you and authorized responders access)
+- **Easy Updates**: Intuitive UI to keep information current
 
-### 📚 First Aid Learning Center (Uhai Learn)
-Educational resources for life-saving skills:
-- **Video Tutorials**: Expert-demonstrated emergency procedures
+### 🎓 Uhai Learn — First Aid Learning Center
+Educational resources to build life-saving skills:
+- **Expert Video Tutorials**: Professional demonstrations of emergency procedures
 - **Interactive Guides**: Step-by-step first aid instructions categorized by emergency type
-- **Downloadable Materials**: E-books and PDF guides for offline access
-- **Search & Filter**: Quickly find relevant tutorials by emergency type
+- **Downloadable Materials**: E-books, PDF guides, posters for offline access
+- **Search & Filter**: Quickly find tutorials by emergency type, skill level, or duration
+- **Webinars & Expert Sessions**: Expert-led training for advanced techniques
+- **Certification Paths** (Future): First aid certification programs in partnership with organizations
 
-### 🏥 Emergency Services Directory (Uhai Emergency Directory)
+### 🏥 Uhai Emergency Directory
 Verified emergency services network across Kenya:
-- Comprehensive directory of hospitals, ambulances, fire services, and NGOs
-- Direct contact information and service descriptions
-- Integration with major organizations: Kenya Red Cross, AMREF, St. John Ambulance
-- One-click calling from the app
-- Service location and hours information
+- **Hospital Directory**: Comprehensive list of hospitals with locations, hours, services
+- **Ambulance Services**: Active 24/7 ambulance providers with contact info
+- **Fire & Rescue**: Fire departments and rescue units across regions
+- **NGO Network**: Kenya Red Cross, AMREF, St. John Ambulance, and partner organizations
+- **One-Click Calling**: Direct contact integration
+- **Location-Based Search**: Find nearest services to your location
+- **Service Verification**: Regularly updated, community-verified provider information
 
-### 👨‍💼 Admin Dashboard (Uhai Admin)
-Comprehensive platform management interface:
-- **User Management**: View, manage, and monitor user accounts
-- **Tutorial Management**: Create, edit, and organize first aid tutorials
-- **Organizations Management**: Manage emergency service provider directory
-- **Analytics Dashboard**: Real-time platform statistics and activity tracking
-- **Activity Logs**: Comprehensive audit trail of all platform actions
-- **Role-Based Access Control**: Secure role-based permissions via Supabase RLS
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **React 18** - Modern UI library with hooks
-- **TypeScript** - Type-safe development
-- **Vite** - Lightning-fast build tool
-- **TailwindCSS** - Utility-first CSS framework
-- **Shadcn UI** - Beautiful, accessible component library
-- **Lucide React** - Modern icon library
-
-### Backend & Database
-- **Supabase** - Backend-as-a-Service
-  - PostgreSQL database
-  - Authentication & authorization
-  - Row Level Security (RLS)
-  - Real-time subscriptions
-
-### AI Integration
-- **OpenRouter API** - Access to multiple AI models
-- Edge functions for secure API communication
-
-### State Management & Routing
-- **React Router DOM** - Client-side routing
-- **TanStack Query** - Server state management
-- **React Hook Form** - Form handling and validation
-
-### UI/UX Libraries
-- **qrcode.react** - QR code generation
-- **Sonner** - Toast notifications
-- **Radix UI** - Accessible component primitives
+### 🛡️ Uhai Admin — Admin Dashboard
+Comprehensive platform management interface for administrators:
+- **User Management**: View, monitor, manage, and support user accounts
+- **Content Management**: Create, edit, delete tutorials and learning materials
+- **Organization Directory**: Manage emergency service providers and verify data
+- **Analytics Dashboard**: Real-time platform statistics (user count, QR scans, AI usage, emergency calls guided)
+- **Activity Logs**: Comprehensive audit trail of all platform actions and changes
+- **Role-Based Access Control**: Secure admin/moderator/editor roles via Supabase RLS
+- **Bulk Operations**: Onboard organizations, manage corporate/university accounts
+- **Reporting Tools**: Export data, generate compliance reports
 
 ---
 
 ## 📁 Project Structure
 
 ```
-UhaiLink/
-├── public/
-│   ├── favicon.ico
-│   ├── robots.txt
-│   └── placeholder.svg
+uhailink/
 ├── src/
 │   ├── components/
-│   │   ├── ui/              # Shadcn UI components
-│   │   ├── Header.tsx       # Navigation header
-│   │   ├── Footer.tsx       # Enhanced footer with CTA
-│   │   └── Layout.tsx       # Page layout wrapper
+│   │   ├── shared/              # Shared components (Header, Footer, Layouts)
+│   │   │   ├── Layout.tsx
+│   │   │   ├── DashboardLayout.tsx
+│   │   │   ├── Header.tsx
+│   │   │   └── Footer.tsx
+│   │   ├── admin/               # Admin-specific components
+│   │   │   ├── AdminContentTab.tsx
+│   │   │   ├── AdminUsersTab.tsx
+│   │   │   ├── AdminOrganizationsTab.tsx
+│   │   │   ├── AdminPaymentsTab.tsx
+│   │   │   ├── AdminQRProductsTab.tsx
+│   │   │   └── AdminEmergencyLogsTab.tsx
+│   │   └── ui/                  # Radix UI primitives (button, card, form, etc.)
+│   │
+│   ├── pages/
+│   │   ├── public/              # Public-facing pages (no auth required)
+│   │   │   ├── Index.tsx        # Home page with hero & features
+│   │   │   ├── Auth.tsx         # Login & signup
+│   │   │   ├── Services.tsx     # Pricing & service tiers
+│   │   │   ├── Learn.tsx        # First aid learning hub
+│   │   │   ├── About.tsx        # About UhaiLink
+│   │   │   ├── Contact.tsx      # Contact form
+│   │   │   ├── AIAssistant.tsx  # Uhai Assist (AI chatbot)
+│   │   │   ├── BuyQRTag.tsx     # QR card/wristband ordering
+│   │   │   ├── PublicProfileView.tsx # QR scanned profile (public)
+│   │   │   └── NotFound.tsx     # 404 page
+│   │   ├── user/                # User dashboard pages (auth required)
+│   │   │   ├── UserDashboard.tsx    # Main user dashboard
+│   │   │   ├── UserProfilePage.tsx  # Comprehensive profile editor
+│   │   │   ├── UserQRPage.tsx       # QR code management & sharing
+│   │   │   ├── UserLearn.tsx        # Personalized learning
+│   │   │   └── UserSettings.tsx     # Account & privacy settings
+│   │   └── admin/               # Admin pages (admin auth required)
+│   │       └── AdminDashboard.tsx   # Admin control panel
+│   │
 │   ├── hooks/
-│   │   ├── use-mobile.tsx   # Responsive breakpoint hook
-│   │   └── use-toast.ts     # Toast notification hook
+│   │   ├── shared/              # Shared hooks (use-toast, use-mobile)
+│   │   │   ├── use-toast.ts
+│   │   │   └── use-mobile.tsx
+│   │
+│   ├── lib/
+│   │   └── shared/              # Shared utilities
+│   │       └── utils.ts         # cn() for Tailwind merging
+│   │
 │   ├── integrations/
 │   │   └── supabase/
-│   │       ├── client.ts    # Supabase client config
-│   │       └── types.ts     # Generated database types
-│   ├── lib/
-│   │   └── utils.ts         # Utility functions
-│   ├── pages/
-│   │   ├── Index.tsx           # Home page with hero & stats
-│   │   ├── Auth.tsx            # Login & signup
-│   │   ├── Services.tsx        # AI assistant page
-│   │   ├── Learn.tsx           # Learning center
-│   │   ├── About.tsx           # About the platform
-│   │   ├── Contact.tsx         # Contact form
-│   │   ├── UserDashboard.tsx   # User dashboard
-│   │   ├── UserProfilePage.tsx # Comprehensive profile editor
-│   │   ├── UserQRPage.tsx      # QR code management
-│   │   ├── AdminDashboard.tsx  # Admin control panel
-│   │   ├── PublicProfileView.tsx # Public profile via QR
-│   │   └── NotFound.tsx        # 404 page
-│   ├── App.tsx              # Main app component with routing
-│   ├── index.css            # Global styles & animations
-│   └── main.tsx             # App entry point
-├── supabase/
-│   ├── config.toml          # Supabase configuration
-│   └── migrations/          # Database migrations
-├── .env                     # Environment variables
-├── tailwind.config.ts       # Tailwind configuration
-├── vite.config.ts           # Vite configuration
-├── package.json             # Dependencies
-└── README.md                # This file
+│   │       ├── client.ts        # Supabase client initialization
+│   │       └── types.ts         # Database types
+│   │
+│   ├── App.tsx                  # Router configuration
+│   ├── main.tsx                 # Entry point
+│   └── index.css                # Global styles
+│
+├── public/
+│   └── robots.txt               # SEO robots directive
+│
+├── index.html                   # HTML entry point
+├── vite.config.ts              # Vite configuration
+├── tsconfig.json               # TypeScript config
+├── tailwind.config.ts          # Tailwind CSS config
+├── eslint.config.js            # ESLint config
+├── package.json                # Dependencies
+└── README.md                   # This file
 ```
+
+### Architecture Overview
+
+**UhaiLink** follows a modular, component-driven architecture:
+
+- **Public Pages**: Unauthenticated landing, auth, services, learning
+- **User Dashboard**: Authenticated user workspace (profile, QR, settings, learn)
+- **Admin Dashboard**: Restricted admin panel (users, content, analytics)
+- **Shared Components**: Layout, header, footer (used across all sections)
+- **Supabase Backend**: Real-time database, auth, RLS policies, file storage
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** — UI library with hooks
+- **TypeScript** — Type safety and better DX
+- **Vite** — Fast build tool and dev server
+- **React Router v6** — Client-side routing
+- **Tailwind CSS** — Utility-first styling
+- **Radix UI** — Accessible component primitives
+- **React Hook Form** — Form state management
+- **React Query** — Server state & caching
+- **Lucide React** — Icon library
+- **Sonner** — Toast notifications
+- **QRCode.react** — QR code generation
+- **Recharts** — Data visualization
+
+### Backend & Services
+- **Supabase** — PostgreSQL database, real-time, auth, storage
+  - Row Level Security (RLS) for data protection
+  - PostgreSQL functions for business logic
+  - File storage for tutorials and materials
+- **OpenRouter** — AI model access (first aid guidance)
+
+### Development
+- **ESLint** — Code quality
+- **TypeScript ESLint** — Type checking
+- **Autoprefixer** — CSS vendor prefixes
+- **PostCSS** — CSS processing
+
+### Infrastructure
+- **Environment Variables** — Secure config management
+- **Responsive Design** — Mobile-first, works on all devices
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-- **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
-- **npm** or **bun** package manager
-- **Supabase Account** - [Sign up](https://supabase.com/)
-- **OpenRouter API Key** - [Get yours](https://openrouter.ai/)
+- **Node.js** 16+ and **npm** 7+
+- **Git** for version control
+- Supabase account (free tier available)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/uhailink.git
-   cd uhai-assist-link
+   git clone https://github.com/your-org/uhailink.git
+   cd uhailink
    ```
 
-2. **Install dependencies**
+2. **Install dependencies:**
    ```bash
    npm install
-   # or
-   bun install
    ```
 
-3. **Set up Supabase**
-   - Create a new project on [Supabase](https://supabase.com/)
-   - Run the database migrations from `supabase/migrations/`
-   - Enable Email Authentication in Supabase Dashboard
-   - Configure auto-confirm for email signups (Settings → Auth)
+3. **Set up environment variables** (see [Environment Variables](#-environment-variables) section)
 
-4. **Configure environment variables**
-
-   Create a `.env` file in the root directory:
-   ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-5. **Add OpenRouter API Key**
-   
-   For AI functionality, add your OpenRouter API key to Supabase secrets:
-   - Go to your Supabase project dashboard
-   - Navigate to Settings → Edge Functions → Secrets
-   - Add: `OPENROUTER_API_KEY=your_openrouter_key`
-
-6. **Run the development server**
+4. **Start the development server:**
    ```bash
    npm run dev
-   # or
-   bun dev
    ```
+   The app will be available at `http://localhost:8080/`
 
-7. **Open your browser**
-   
-   Navigate to `http://localhost:5173`
+### Available Commands
 
-### Accessing the Admin Dashboard
+```bash
+# Development
+npm run dev          # Start dev server with hot reload
 
-To access the admin dashboard at `/admin`:
-- A valid admin role in the Supabase database is required
-- Admin features include user management, tutorial management, organization management, and system logs
-- Only users with admin role can access these features
+# Build & Deploy
+npm run build        # Build for production
+npm run preview      # Preview production build locally
 
-> ⚠️ **Important**: Always use strong credentials and implement proper role-based access control in production!
+# Code Quality
+npm run lint         # Run ESLint and fix issues
+npm run lint -- --fix # Auto-fix fixable issues
+
+# Type Checking
+npx tsc --noEmit    # Check TypeScript types without emitting files
+```
 
 ---
 
 ## 🔐 Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `VITE_SUPABASE_URL` | Your Supabase project URL | ✅ Yes |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key (used for client authentication) | ✅ Yes |
+Create a `.env.local` file in the root directory with the following variables:
 
-### Supabase Edge Function Secrets
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
 
-| Secret | Description | Required |
-|--------|-------------|----------|
-| `OPENROUTER_API_KEY` | OpenRouter API key for AI features | ✅ Yes (for AI Assistant) |
+# AI/LLM Configuration (OpenRouter)
+VITE_OPENROUTER_API_KEY=your-openrouter-key-here
+
+# App Configuration
+VITE_APP_URL=http://localhost:8080
+VITE_APP_NAME=UhaiLink
+```
+
+### Getting Credentials
+
+**Supabase:**
+1. Sign up at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to **Project Settings → API** to find your URL and anon key
+
+**OpenRouter:**
+1. Sign up at [openrouter.ai](https://openrouter.ai)
+2. Create an API key in the dashboard
+3. Add credits to your account
 
 ---
 
 ## 🌐 Deployment
 
-### Recommended: Vercel
+### Vercel (Recommended)
+1. Push code to GitHub
+2. Import project in Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy automatically on push
 
-1. **Push your code to GitHub**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
-
-2. **Deploy to Vercel**
-   - Visit [Vercel](https://vercel.com/)
-   - Import your GitHub repository
-   - Add environment variables from `.env`
-   - Click "Deploy"
-
-### Alternative: Netlify, Railway, or Render
-
-The project is compatible with any modern static hosting platform. Just ensure:
-- Build command: `npm run build`
-- Output directory: `dist`
-- Environment variables are configured
-
-### Supabase Edge Functions
-
-Deploy edge functions separately:
 ```bash
-supabase functions deploy
+# One-click deploy
+# Visit: https://vercel.com/new
+```
+
+### Docker
+```bash
+# Build Docker image
+docker build -t uhailink:latest .
+
+# Run container
+docker run -p 8080:8080 uhailink:latest
+```
+
+### Self-Hosted
+```bash
+npm run build          # Creates dist/ folder
+# Serve dist/ folder with your web server (nginx, Apache, etc.)
 ```
 
 ---
 
-## 📸 Screenshots
+## 👥 Contributing
 
-> _Add screenshots here once the application is deployed_
+We welcome contributions from developers, designers, and healthcare professionals!
 
-### Home Page
-![Home Page](./screenshots/home.png)
+### Development Workflow
 
-### AI Assistant
-![AI Assistant](./screenshots/ai-assistant.png)
+1. **Fork the repository**
+2. **Create a feature branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Make changes** following code style conventions
+4. **Run linter and type checks:**
+   ```bash
+   npm run lint -- --fix
+   npx tsc --noEmit
+   npm run build
+   ```
+5. **Commit with clear messages:**
+   ```bash
+   git commit -m "feat: add new feature" -m "Detailed description"
+   ```
+6. **Push to your fork and create a Pull Request**
 
-### User Profile
-![User Profile](./screenshots/profile.png)
+### Code Standards
 
-### Admin Dashboard
-![Admin Dashboard](./screenshots/admin.png)
+- **TypeScript**: No explicit `any` types; use `unknown` with type guards
+- **Components**: Functional components with hooks
+- **Styling**: Tailwind CSS utilities
+- **Naming**: Clear, descriptive names (PascalCase for components, camelCase for functions)
+- **Comments**: Document complex logic and business rules
+- **Accessibility**: WCAG 2.1 AA compliance for UI components
+
+### Reporting Issues
+
+Found a bug? Please open an issue with:
+- Clear description of the problem
+- Steps to reproduce
+- Expected vs. actual behavior
+- Your environment (OS, browser, Node version)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🆘 Support
+
+### Getting Help
+
+- **Documentation**: [docs.uhailink.com](#) (coming soon)
+- **Email**: support@uhailink.com
+- **Discord**: [Community Chat](#) (coming soon)
+- **Issues**: [GitHub Issues](https://github.com/your-org/uhailink/issues)
+
+### Frequently Asked Questions
+
+**Q: Is my medical information secure?**
+A: Yes. All data is encrypted in transit (HTTPS/TLS) and at rest. We use Supabase Row Level Security (RLS) to ensure only authorized users access your profile.
+
+**Q: Does UhaiLink work offline?**
+A: Core features (QR scanning, AI first aid) are designed to work in low-connectivity environments. Data syncs when internet is available.
+
+**Q: Can I share my QR code?**
+A: Yes, your QR code is designed to be shared. It contains a secure token that expires if compromised. You can regenerate it instantly.
+
+**Q: How much does UhaiLink cost?**
+A: Basic features are free. Premium plans ($4.99/month for individuals) unlock unlimited AI assistance, offline modules, and family bundles.
 
 ---
 
@@ -331,73 +434,24 @@ supabase functions deploy
 
 ---
 
-## 👥 Contributors
-
-### Core Team
-- **Project Lead** - [Your Name](https://github.com/yourusername)
-- **Backend Developer** - [Name](https://github.com/username)
-- **UI/UX Designer** - [Name](https://github.com/username)
-
-### How to Contribute
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Code of Conduct
-
-Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🆘 Support
-
-### Need Help?
-
-- 📧 Email: support@uhailink.com
-- 💬 Discord: [Join our community](https://discord.gg/uhailink)
-- 📚 Documentation: [docs.uhailink.com](https://docs.uhailink.com)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/uhai-assist-link/issues)
-
-### Emergency Contacts (Kenya)
-
-- **Emergency Hotline**: 999 / 112
-- **Ambulance Services**: 999
-- **Police**: 999
-- **Red Cross**: +254 703 037 000
-
----
-
 ## 🙏 Acknowledgments
 
-- **Supabase** - For the amazing backend platform
-- **Shadcn UI** - For beautiful, accessible components
-- **OpenRouter** - For AI model access
-- **Lovable** - For the development platform
-- **Kenya Red Cross** - For emergency response inspiration
+- **Radix UI** for accessible component primitives
+- **Tailwind CSS** for rapid styling
+- **Supabase** for backend infrastructure
+- **OpenRouter** for AI model access
+- **Kenya Red Cross**, **AMREF**, and **St. John Ambulance** for emergency services partnerships
+- All contributors and the open-source community
 
 ---
 
-<p align="center">
-  <strong>Built with ❤️ in Kenya</strong><br>
-  <em>Saving lives, one click at a time</em>
-</p>
+## 🔗 Useful Links
+
+- **Website**: [uhailink.com](#)
+- **Twitter**: [@UhaiLink](#)
+- **GitHub**: [github.com/your-org/uhailink](#)
+- **Blog**: [uhailink.com/blog](#)
 
 ---
 
-## 🔗 Links
-
-- **Live Demo**: [uhailink.vercel.app](https://uhailink.vercel.app)
-- **Documentation**: [docs.uhailink.com](https://docs.uhailink.com)
-- **GitHub**: [github.com/yourusername/uhai-assist-link](https://github.com/yourusername/uhai-assist-link)
-- **Lovable Project**: [lovable.dev/projects/445b02f5-4368-4db3-b0f8-ae275492160b](https://lovable.dev/projects/445b02f5-4368-4db3-b0f8-ae275492160b)
+**Made with ❤️ for emergencies. Built with 🔒 for safety.**

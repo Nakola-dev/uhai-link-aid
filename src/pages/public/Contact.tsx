@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 
 const Contact = () => {
   const handleSubmit = (e: React.FormEvent) => {

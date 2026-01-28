@@ -4,7 +4,7 @@ import {
   Phone, MapPin, Bell, Brain, Zap, CheckCircle2, Star,
   Download, Video, FileText, Calendar, Activity, Lock
 } from 'lucide-react';
-import Layout from '@/components/Layout';
+import Layout from '@/components/shared/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -416,7 +416,7 @@ const Services = () => {
                       </ul>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                      <Button className="w-full" onClick={() => navigate('/dashboard/user/buy-qr')}>
+                      <Button className="w-full" onClick={() => navigate('/dashboard/buy-qr')}>
                         Buy Now
                       </Button>
                       <Button variant="outline" className="w-full">
@@ -486,7 +486,7 @@ const Services = () => {
           </div>
 
           <div className="mt-12 text-center">
-            <Button size="lg" onClick={() => navigate('/dashboard/user/assistant')}>
+            <Button size="lg" onClick={() => navigate('/dashboard/assistant')}>
               <Sparkles className="w-5 h-5 mr-2" />
               Try AI Assistant
             </Button>

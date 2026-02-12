@@ -14,6 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          id: string
+          user_id: string
+          reason: string | null
+          status: string
+          requested_at: string
+          processed_at: string | null
+          processed_by: string | null
+          rejection_reason: string | null
+          data_export_url: string | null
+          data_export_expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          reason?: string | null
+          status?: string
+          requested_at?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          rejection_reason?: string | null
+          data_export_url?: string | null
+          data_export_expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          reason?: string | null
+          status?: string
+          requested_at?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          rejection_reason?: string | null
+          data_export_url?: string | null
+          data_export_expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_logs: {
+        Row: {
+          id: string
+          admin_user_id: string
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          entity_type: string
+          entity_id: string | null
+          description: string | null
+          changes: Json | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          admin_user_id: string
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          entity_type: string
+          entity_id?: string | null
+          description?: string | null
+          changes?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          admin_user_id?: string
+          action_type?: Database["public"]["Enums"]["admin_action_type"]
+          entity_type?: string
+          entity_id?: string | null
+          description?: string | null
+          changes?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      analytics: {
+        Row: {
+          id: string
+          metric_type: string
+          metric_key: string
+          metric_value: number
+          user_id: string | null
+          session_id: string | null
+          date_recorded: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          metric_type: string
+          metric_key: string
+          metric_value?: number
+          user_id?: string | null
+          session_id?: string | null
+          date_recorded?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          metric_type?: string
+          metric_key?: string
+          metric_value?: number
+          user_id?: string | null
+          session_id?: string | null
+          date_recorded?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           category: string
@@ -151,6 +271,131 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      data_access_logs: {
+        Row: {
+          id: string
+          accessor_id: string
+          accessed_user_id: string
+          access_type: string
+          resource_type: string
+          resource_id: string | null
+          fields_accessed: string[] | null
+          access_context: string | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          accessor_id: string
+          accessed_user_id: string
+          access_type: string
+          resource_type: string
+          resource_id?: string | null
+          fields_accessed?: string[] | null
+          access_context?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          accessor_id?: string
+          accessed_user_id?: string
+          access_type?: string
+          resource_type?: string
+          resource_id?: string | null
+          fields_accessed?: string[] | null
+          access_context?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      legal_document_versions: {
+        Row: {
+          id: string
+          document_type: string
+          version: string
+          title: string
+          content: string
+          summary_of_changes: string | null
+          effective_date: string
+          superseded_date: string | null
+          published_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          document_type: string
+          version: string
+          title: string
+          content: string
+          summary_of_changes?: string | null
+          effective_date: string
+          superseded_date?: string | null
+          published_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          document_type?: string
+          version?: string
+          title?: string
+          content?: string
+          summary_of_changes?: string | null
+          effective_date?: string
+          superseded_date?: string | null
+          published_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organization_services: {
+        Row: {
+          id: string
+          organization_id: string
+          service_name: string
+          service_description: string | null
+          availability_hours: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          service_name: string
+          service_description?: string | null
+          availability_hours?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          service_name?: string
+          service_description?: string | null
+          availability_hours?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_services_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_organizations"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
@@ -379,6 +624,84 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          id: string
+          user_id: string | null
+          event_type: string
+          severity: string
+          description: string | null
+          metadata: Json
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          event_type: string
+          severity?: string
+          description?: string | null
+          metadata?: Json
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          event_type?: string
+          severity?: string
+          description?: string | null
+          metadata?: Json
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      user_consents: {
+        Row: {
+          id: string
+          user_id: string
+          consent_type: string
+          consent_version: string
+          granted: boolean
+          granted_at: string | null
+          revoked_at: string | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          consent_type: string
+          consent_version: string
+          granted?: boolean
+          granted_at?: string | null
+          revoked_at?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          consent_type?: string
+          consent_version?: string
+          granted?: boolean
+          granted_at?: string | null
+          revoked_at?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emergency_incidents: {
         Row: {
           created_at: string
@@ -604,6 +927,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_action_type: "create" | "update" | "delete" | "view" | "export"
       app_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -732,6 +1056,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_action_type: ["create", "update", "delete", "view", "export"],
       app_role: ["admin", "user"],
     },
   },

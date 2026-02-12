@@ -7,12 +7,20 @@ interface AdminEmergencyLogsTabProps {
   onUpdate: () => void;
 }
 
-// Mock data for demonstration - will be replaced when emergency_logs table is created
+// Severity label helper — maps numeric severity to display text
+const getSeverityLabel = (severity: number): string => {
+  if (severity >= 9) return 'critical';
+  if (severity >= 7) return 'high';
+  if (severity >= 4) return 'medium';
+  return 'low';
+};
+
+// Mock data for demonstration - will be replaced with real DB queries
 const mockLogs = [
   {
     id: '1',
     incident_type: 'Medical Emergency',
-    severity: 'critical',
+    severity: 10,
     status: 'resolved',
     description: 'Cardiac arrest reported at shopping mall',
     location_address: 'Nairobi CBD',
@@ -22,7 +30,7 @@ const mockLogs = [
   {
     id: '2',
     incident_type: 'Accident',
-    severity: 'high',
+    severity: 8,
     status: 'in_progress',
     description: 'Traffic accident with injuries on Mombasa Road',
     location_address: 'Mombasa Road',
@@ -32,7 +40,7 @@ const mockLogs = [
   {
     id: '3',
     incident_type: 'Fire',
-    severity: 'critical',
+    severity: 10,
     status: 'active',
     description: 'Building fire reported in residential area',
     location_address: 'Westlands',
@@ -122,9 +130,9 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
                     <div className="flex items-start gap-3">
                       <AlertCircle
                         className={`h-5 w-5 mt-1 ${
-                          log.severity === 'critical'
+                          log.severity >= 9
                             ? 'text-red-600'
-                            : log.severity === 'high'
+                            : log.severity >= 7
                             ? 'text-orange-600'
                             : 'text-yellow-600'
                         }`}
@@ -160,7 +168,7 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
                       <MapPin className="h-4 w-4" />
                       {log.location_address}
                     </div>
-                    <Badge variant="outline">{log.severity}</Badge>
+                    <Badge variant="outline">{getSeverityLabel(log.severity)}</Badge>
                   </div>
                 </div>
               ))

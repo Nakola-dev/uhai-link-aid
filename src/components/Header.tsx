@@ -17,6 +17,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,6 +48,13 @@ const Header = () => {
       .eq('id', userId)
       .single();
     setProfile(data);
+
+    // Check admin role using has_role() RPC (F-019: standardized pattern)
+    const { data: hasAdmin } = await supabase.rpc('has_role', {
+      _user_id: userId,
+      _role: 'admin'
+    });
+    setIsAdmin(!!hasAdmin);
   };
 
   const handleSignOut = async () => {
@@ -109,7 +117,7 @@ const Header = () => {
                 {link.label}
               </Link>
             ))}
-            {user && profile?.role === 'admin' && (
+            {user && isAdmin && (
               <Link
                 to="/admin"
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
@@ -194,7 +202,7 @@ const Header = () => {
                 <Link to={link.to}>{link.label}</Link>
               </Button>
             ))}
-            {user && profile?.role === 'admin' && (
+            {user && isAdmin && (
               <Button
                 variant={isActive('/dashboard/admin') ? "default" : "ghost"}
                 className="w-full justify-start"

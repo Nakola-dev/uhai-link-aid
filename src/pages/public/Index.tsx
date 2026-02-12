@@ -1,25 +1,51 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, QrCode, Clock, Heart, CheckCircle2, ArrowRight, Activity, Award, Phone } from 'lucide-react';
+import { Shield, QrCode, Clock, Heart, CheckCircle2, ArrowRight, Activity, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/shared/Layout';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [livesAssisted, setLivesAssisted] = useState(0);
-  const [trainingSessions, setTrainingSessions] = useState(0);
-  const [emergencyCalls, setEmergencyCalls] = useState(0);
+  const [registeredUsers, setRegisteredUsers] = useState(0);
+  const [qrCodesIssued, setQrCodesIssued] = useState(0);
+  const [emergencyResponses, setEmergencyResponses] = useState(0);
   const statsRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [statsLoaded, setStatsLoaded] = useState(false);
+
+  // Fetch real statistics from the database
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [usersRes, qrRes, incidentsRes] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('qr_access_tokens').select('*', { count: 'exact', head: true }).eq('is_active', true),
+          supabase.from('emergency_incidents').select('*', { count: 'exact', head: true }),
+        ]);
+
+        setRegisteredUsers(usersRes.count ?? 0);
+        setQrCodesIssued(qrRes.count ?? 0);
+        setEmergencyResponses(incidentsRes.count ?? 0);
+        setStatsLoaded(true);
+      } catch {
+        // Silently fail — stats section will show 0
+        setStatsLoaded(true);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
+    if (!statsLoaded) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !hasAnimated) {
           setHasAnimated(true);
-          animateCounter(setLivesAssisted, 15420, 2000);
-          animateCounter(setTrainingSessions, 8750, 2000);
-          animateCounter(setEmergencyCalls, 23680, 2000);
+          animateCounter(setRegisteredUsers, registeredUsers, 1500);
+          animateCounter(setQrCodesIssued, qrCodesIssued, 1500);
+          animateCounter(setEmergencyResponses, emergencyResponses, 1500);
         }
       },
       { threshold: 0.3 }
@@ -30,7 +56,7 @@ const Index = () => {
     }
 
     return () => observer.disconnect();
-  }, [hasAnimated]);
+  }, [hasAnimated, statsLoaded, registeredUsers, qrCodesIssued, emergencyResponses]);
 
   const animateCounter = (setter: (val: number) => void, target: number, duration: number) => {
     const start = 0;
@@ -143,32 +169,32 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="text-center space-y-3 group cursor-pointer">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2 group-hover:scale-110 transition-transform">
-                <Activity className="h-8 w-8 text-primary group-hover:animate-pulse" />
+                <Users className="h-8 w-8 text-primary group-hover:animate-pulse" />
               </div>
               <div className="text-4xl md:text-5xl font-bold text-primary">
-                {livesAssisted.toLocaleString()}+
+                {registeredUsers.toLocaleString()}
               </div>
-              <div className="text-lg text-muted-foreground">Lives Assisted</div>
+              <div className="text-lg text-muted-foreground">Registered Users</div>
             </div>
             
             <div className="text-center space-y-3 group cursor-pointer">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary/10 mb-2 group-hover:scale-110 transition-transform">
-                <Award className="h-8 w-8 text-secondary group-hover:animate-pulse" />
+                <QrCode className="h-8 w-8 text-secondary group-hover:animate-pulse" />
               </div>
               <div className="text-4xl md:text-5xl font-bold text-secondary">
-                {trainingSessions.toLocaleString()}+
+                {qrCodesIssued.toLocaleString()}
               </div>
-              <div className="text-lg text-muted-foreground">Training Sessions</div>
+              <div className="text-lg text-muted-foreground">QR Codes Issued</div>
             </div>
             
             <div className="text-center space-y-3 group cursor-pointer">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-2 group-hover:scale-110 transition-transform">
-                <Phone className="h-8 w-8 text-accent group-hover:animate-pulse" />
+                <Activity className="h-8 w-8 text-accent group-hover:animate-pulse" />
               </div>
               <div className="text-4xl md:text-5xl font-bold text-accent">
-                {emergencyCalls.toLocaleString()}+
+                {emergencyResponses.toLocaleString()}
               </div>
-              <div className="text-lg text-muted-foreground">Emergency Calls Guided</div>
+              <div className="text-lg text-muted-foreground">Emergency Responses</div>
             </div>
           </div>
         </div>

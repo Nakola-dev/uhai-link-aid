@@ -69,14 +69,13 @@ const AdminEmergencyDashboard = () => {
           return;
         }
 
-        // Check admin status - role is an enum field
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+        // Check admin status using has_role() RPC (F-019: standardized pattern)
+        const { data: hasAdmin, error: roleError } = await supabase.rpc('has_role', {
+          _user_id: session.user.id,
+          _role: 'admin'
+        });
 
-        if (profile?.role !== 'admin') {
+        if (roleError || !hasAdmin) {
           toast({
             variant: 'destructive',
             title: 'Access Denied',

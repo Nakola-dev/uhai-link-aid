@@ -80,13 +80,14 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
               size="icon"
               className="lg:hidden"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar menu"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto" aria-label="Dashboard navigation">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -132,6 +133,8 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
               size="icon"
               className="lg:hidden"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar menu"
+              aria-expanded={sidebarOpen}
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -139,10 +142,11 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
             {/* Search Bar (Desktop) */}
             <div className="hidden lg:flex items-center flex-1 max-w-md">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <input
                   type="text"
                   placeholder="Search..."
+                  aria-label="Search dashboard"
                   className="w-full pl-10 pr-4 py-2 bg-muted/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -150,9 +154,9 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
 
             {/* User Section */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" aria-hidden="true"></span>
               </Button>
 
               <div className="flex items-center space-x-3">
@@ -174,7 +178,7 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8">
+        <main id="main-content" className="flex-1 p-4 lg:p-8" role="main">
           {children}
         </main>
       </div>
@@ -184,6 +188,7 @@ const DashboardLayout = ({ children, user, isAdmin }: DashboardLayoutProps) => {
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
     </div>

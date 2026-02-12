@@ -67,7 +67,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center space-x-1" aria-label="Main navigation">
             {links.map((link) => (
               <Link
                 key={link.to}
@@ -166,7 +166,7 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-2">
+          <nav className="md:hidden py-4 space-y-2" aria-label="Mobile navigation">
             {links.map((link) => (
               <Button
                 key={link.to}
@@ -211,7 +211,7 @@ const Header = () => {
                 <Link to="/auth">Get Started</Link>
               </Button>
             )}
-          </div>
+          </nav>
         )}
       </div>
     </header>

@@ -11,7 +11,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative border-t border-border/40 bg-gradient-to-br from-primary/5 via-background to-secondary/5 backdrop-blur">
+    <footer className="relative border-t border-border/40 bg-gradient-to-br from-primary/5 via-background to-secondary/5 backdrop-blur" role="contentinfo">
       <div className="container mx-auto px-4 py-12">
         {/* Mini CTA */}
         <div className="max-w-3xl mx-auto text-center mb-12 p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">

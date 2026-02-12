@@ -159,7 +159,7 @@ const UserLearn = () => {
       });
     } else {
       if (webinar.url) {
-        window.open(webinar.url, '_blank');
+        window.open(webinar.url, '_blank', 'noopener,noreferrer');
       } else {
         toast({
           title: "Webinar Link",

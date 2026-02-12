@@ -1,42 +1,14 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Check, Star, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/shared/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const BuyQRTag = () => {
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const navigate = useNavigate();
+  const { profile, isAdmin } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const [profileRes, adminRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' })
-      ]);
-
-      if (profileRes.data) setUser(profileRes.data);
-      if (adminRes.data !== null) setIsAdmin(adminRes.data);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-    }
-  };
 
   const handleOrderClick = (productName: string) => {
     toast({
@@ -93,7 +65,7 @@ const BuyQRTag = () => {
   ];
 
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">

@@ -16,10 +16,11 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import Layout from '@/components/Layout';
+import type { Profile } from '@/hooks/use-auth';
 
 const PublicProfileView = () => {
   const { token } = useParams<{ token: string }>();
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,73 +35,29 @@ const PublicProfileView = () => {
         return;
       }
 
-      // Fetch QR token
-      const { data: tokenData, error: tokenError } = await supabase
-        .from('qr_access_tokens')
-        .select('user_id, is_active')
-        .eq('access_token', token)
-        .maybeSingle();
-
-      if (tokenError || !tokenData) {
-        setError('Invalid or expired QR code');
-        return;
-      }
-
-      if (!tokenData.is_active) {
-        setError('This QR code has been deactivated');
-        return;
-      }
-
-      // Rate limiting: Check recent scans from this IP (max 5 scans per minute)
-      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-      const { data: recentScans } = await supabase
-        .from('qr_scans')
-        .select('id')
-        .eq('ip_address', getClientIP())
-        .gte('created_at', oneMinuteAgo)
-        .limit(5);
-
-      const accessGranted = !recentScans || recentScans.length < 5;
-
-      // Log QR scan to audit trail
-      await supabase.from('qr_scans').insert({
-        qr_token_id: (tokenData as any)?.qr_token_id || token,
-        ip_address: getClientIP(),
-        user_agent: navigator.userAgent,
-        access_granted: accessGranted,
-        denial_reason: accessGranted ? null : 'Rate limit exceeded (5 scans/minute)',
-        created_at: new Date().toISOString(),
+      // Server-side rate-limited QR scan: validates token, checks rate limit,
+      // logs scan, and returns profile — all atomically in PostgreSQL (F-013)
+      const { data, error: rpcError } = await supabase.rpc('check_and_log_qr_scan', {
+        _access_token: token,
+        _ip_address: 'unknown', // Server determines real IP in production via Edge Function
+        _user_agent: navigator.userAgent,
       });
 
-      if (!accessGranted) {
-        setError('Rate limit exceeded. Too many scans from this location. Please try again in a moment.');
+      if (rpcError) throw rpcError;
+
+      const result = data as { success: boolean; error?: string; profile?: Profile };
+
+      if (!result.success) {
+        setError(result.error || 'Failed to load profile information');
         return;
       }
 
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', tokenData.user_id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      setProfile(profileData);
+      setProfile(result.profile as Profile);
     } catch (error: unknown) {
       setError('Failed to load profile information');
       console.error('Error:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Get client IP (best effort - won't work in all environments)
-  const getClientIP = (): string => {
-    try {
-      return ((window as any).clientIP as string) || 'unknown';
-    } catch {
-      return 'unknown';
     }
   };
 
@@ -157,7 +114,7 @@ const PublicProfileView = () => {
                   <User className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">{(profile as any)?.full_name || 'Unknown'}</CardTitle>
+                  <CardTitle className="text-2xl">{profile?.full_name || 'Unknown'}</CardTitle>
                   <CardDescription>Patient Medical Profile</CardDescription>
                 </div>
               </div>
@@ -168,7 +125,7 @@ const PublicProfileView = () => {
                   <Phone className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{(profile as any)?.phone || 'Not provided'}</p>
+                    <p className="font-medium">{profile?.phone || 'Not provided'}</p>
                   </div>
                 </div>
 
@@ -176,7 +133,7 @@ const PublicProfileView = () => {
                   <Droplet className="h-5 w-5 text-accent" />
                   <div>
                     <p className="text-sm text-muted-foreground">Blood Type</p>
-                    <p className="font-medium">{(profile as any)?.blood_type || 'Unknown'}</p>
+                    <p className="font-medium">{profile?.blood_type || 'Unknown'}</p>
                   </div>
                 </div>
               </div>
@@ -185,7 +142,7 @@ const PublicProfileView = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Allergies */}
-            <Card className={((profile as any)?.allergies as any[])?.length > 0 ? 'border-accent' : ''}>
+            <Card className={(profile?.allergies?.length ?? 0) > 0 ? 'border-accent' : ''}>
               <CardHeader>
                 <div className="flex items-center space-x-2">
                   <AlertTriangle className="h-5 w-5 text-accent" />
@@ -193,9 +150,9 @@ const PublicProfileView = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {(((profile as any)?.allergies) as unknown[])?.length > 0 ? (
+                {(profile?.allergies?.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(((profile as any)?.allergies) as string[])?.map((allergy: string, index: number) => (
+                    {profile?.allergies?.map((allergy, index) => (
                       <Badge key={index} variant="destructive">
                         {allergy}
                       </Badge>
@@ -216,9 +173,9 @@ const PublicProfileView = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {(((profile as any)?.medications) as unknown[])?.length > 0 ? (
+                {(profile?.medications?.length ?? 0) > 0 ? (
                   <ul className="space-y-2">
-                    {(((profile as any)?.medications) as string[])?.map((medication: string, index: number) => (
+                    {profile?.medications?.map((medication, index) => (
                       <li key={index} className="flex items-start">
                         <span className="mr-2">•</span>
                         <span>{medication}</span>
@@ -240,9 +197,9 @@ const PublicProfileView = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {(((profile as any)?.chronic_conditions) as unknown[])?.length > 0 ? (
+                {(profile?.chronic_conditions?.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(((profile as any)?.chronic_conditions) as string[])?.map((condition: string, index: number) => (
+                    {profile?.chronic_conditions?.map((condition, index) => (
                       <Badge key={index} variant="secondary">
                         {condition}
                       </Badge>
@@ -263,20 +220,20 @@ const PublicProfileView = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {(profile as any)?.emergency_contact_name ? (
+                {profile?.emergency_contact_name ? (
                   <div className="space-y-2">
                     <div>
                       <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium text-lg">{String((profile as any)?.emergency_contact_name || '')}</p>
+                      <p className="font-medium text-lg">{profile?.emergency_contact_name || ''}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Phone</p>
-                      <p className="font-medium text-lg">{String((profile as any)?.emergency_contact_phone || '')}</p>
+                      <p className="font-medium text-lg">{profile?.emergency_contact_phone || ''}</p>
                     </div>
-                    {(profile as any)?.emergency_contact_relationship && (
+                    {profile?.emergency_contact_relationship && (
                       <div>
                         <p className="text-sm text-muted-foreground">Relationship</p>
-                        <p className="font-medium">{String((profile as any)?.emergency_contact_relationship || '')}</p>
+                        <p className="font-medium">{profile?.emergency_contact_relationship || ''}</p>
                       </div>
                     )}
                   </div>
@@ -289,7 +246,7 @@ const PublicProfileView = () => {
 
           {/* Last Updated */}
           <p className="text-center text-sm text-muted-foreground mt-8">
-            Last updated: {(profile as any)?.updated_at ? new Date((profile as any)?.updated_at as string).toLocaleDateString() : 'Unknown'}
+            Last updated: {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Unknown'}
           </p>
         </div>
       </div>

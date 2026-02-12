@@ -11,11 +11,54 @@ interface AdminContentTabProps {
   onUpdate: () => void;
 }
 
+interface ContentTutorial {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string | null;
+  category: string | null;
+  is_premium: boolean;
+  view_count: number;
+  created_at: string;
+}
+
+interface ContentArticle {
+  id: string;
+  title: string;
+  summary: string | null;
+  category: string | null;
+  is_featured: boolean;
+  view_count: number;
+  created_at: string;
+}
+
+interface ContentWebinar {
+  id: string;
+  title: string;
+  description: string | null;
+  date_time: string;
+  is_paid: boolean;
+  price: number;
+  current_attendees: number;
+  created_at: string;
+}
+
+interface ContentMaterial {
+  id: string;
+  title: string;
+  description: string | null;
+  file_type: string;
+  category: string | null;
+  is_premium: boolean;
+  download_count: number;
+  created_at: string;
+}
+
 export const AdminContentTab = ({ onUpdate }: AdminContentTabProps) => {
-  const [tutorials, setTutorials] = useState<Record<string, unknown>[]>([]);
-  const [articles, setArticles] = useState<Record<string, unknown>[]>([]);
-  const [webinars, setWebinars] = useState<Record<string, unknown>[]>([]);
-  const [materials, setMaterials] = useState<Record<string, unknown>[]>([]);
+  const [tutorials, setTutorials] = useState<ContentTutorial[]>([]);
+  const [articles, setArticles] = useState<ContentArticle[]>([]);
+  const [webinars, setWebinars] = useState<ContentWebinar[]>([]);
+  const [materials, setMaterials] = useState<ContentMaterial[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

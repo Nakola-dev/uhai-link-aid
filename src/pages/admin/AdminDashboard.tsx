@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, Users, ArrowLeft, Loader2, QrCode, Search, Edit, Trash2, Plus, Building, BookOpen, Activity } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 
 interface UserProfile {
   id: string;

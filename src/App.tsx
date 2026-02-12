@@ -3,31 +3,40 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Index from "@/pages/public/Index";
-import Auth from "@/pages/public/Auth";
-import About from "@/pages/public/About";
-import Contact from "@/pages/public/Contact";
-import Services from "@/pages/public/Services";
-import Learn from "@/pages/public/Learn";
-import Onboarding from "@/pages/public/Onboarding";
-import PrivacyPolicy from "@/pages/public/PrivacyPolicy";
-import TermsOfService from "@/pages/public/TermsOfService";
-import MedicalDisclaimer from "@/pages/public/MedicalDisclaimer";
-import UserDashboard from "@/pages/user/UserDashboard";
-import UserProfilePage from "@/pages/user/UserProfilePage";
-import UserQRPage from "@/pages/user/UserQRPage";
-import UserLearn from "@/pages/user/UserLearn";
-import UserEmergency from "@/pages/user/UserEmergency";
-import UserAIAssistant from "@/pages/user/UserAIAssistant";
-import BuyQRTag from "@/pages/public/BuyQRTag";
-import UserSettings from "@/pages/user/UserSettings";
-import PublicProfileView from "@/pages/public/PublicProfileView";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminEmergencyDashboard from "@/pages/admin/AdminEmergencyDashboard";
-import NotFound from "@/pages/public/NotFound";
+
+// Lazy-loaded pages — only downloaded when the route is visited (F-026)
+const Index = lazy(() => import("@/pages/public/Index"));
+const Auth = lazy(() => import("@/pages/public/Auth"));
+const About = lazy(() => import("@/pages/public/About"));
+const Contact = lazy(() => import("@/pages/public/Contact"));
+const Services = lazy(() => import("@/pages/public/Services"));
+const Learn = lazy(() => import("@/pages/public/Learn"));
+const Onboarding = lazy(() => import("@/pages/public/Onboarding"));
+const PrivacyPolicy = lazy(() => import("@/pages/public/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("@/pages/public/TermsOfService"));
+const MedicalDisclaimer = lazy(() => import("@/pages/public/MedicalDisclaimer"));
+const UserDashboard = lazy(() => import("@/pages/user/UserDashboard"));
+const UserProfilePage = lazy(() => import("@/pages/user/UserProfilePage"));
+const UserQRPage = lazy(() => import("@/pages/user/UserQRPage"));
+const UserLearn = lazy(() => import("@/pages/user/UserLearn"));
+const UserEmergency = lazy(() => import("@/pages/user/UserEmergency"));
+const UserAIAssistant = lazy(() => import("@/pages/user/UserAIAssistant"));
+const BuyQRTag = lazy(() => import("@/pages/public/BuyQRTag"));
+const UserSettings = lazy(() => import("@/pages/user/UserSettings"));
+const PublicProfileView = lazy(() => import("@/pages/public/PublicProfileView"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminEmergencyDashboard = lazy(() => import("@/pages/admin/AdminEmergencyDashboard"));
+const NotFound = lazy(() => import("@/pages/public/NotFound"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -35,6 +44,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
@@ -77,6 +87,7 @@ const App = () => (
           {/* Catch-all - must be last */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

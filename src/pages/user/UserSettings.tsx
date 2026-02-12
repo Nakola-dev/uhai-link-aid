@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import { useAuth } from '@/hooks/use-auth';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/shared/use-toast';
-import { useNavigate } from 'react-router-dom';
-import { Moon, Sun, Save, Lock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Moon, Sun, Save, Lock, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const UserSettings = () => {
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, isAdmin, refreshProfile } = useAuth();
   const [darkMode, setDarkMode] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -26,53 +26,33 @@ const UserSettings = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletionReason, setDeletionReason] = useState('');
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const [profileRes, adminRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' })
-      ]);
-
-      if (profileRes.data) {
-        setUser(profileRes.data);
-        setFormData({
-          full_name: profileRes.data.full_name || '',
-          phone: profileRes.data.phone || '',
-          city: profileRes.data.city || '',
-          county: profileRes.data.county || '',
-        });
-      }
-      if (adminRes.data !== null) setIsAdmin(adminRes.data);
-    } catch (error) {
-      console.error('Error fetching user:', error);
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        city: profile.city || '',
+        county: profile.county || '',
+      });
     }
-  };
+  }, [profile]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!user?.id) return;
 
       const { error } = await supabase
         .from('profiles')
         .update(formData)
-        .eq('id', session.user.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -81,7 +61,7 @@ const UserSettings = () => {
         description: "Profile updated successfully",
       });
 
-      fetchUser();
+      await refreshProfile();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       toast({
@@ -154,8 +134,54 @@ const UserSettings = () => {
     });
   };
 
+  const handleRequestDeletion = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type DELETE to confirm account deletion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (!user?.id) return;
+
+      const { error } = await supabase
+        .from('account_deletion_requests')
+        .insert({
+          user_id: user.id,
+          reason: deletionReason || null,
+          status: 'pending',
+          requested_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Deletion Request Submitted",
+        description: "Your account deletion request has been submitted. We will process it within 30 days as required by data protection regulations.",
+      });
+
+      setShowDeleteDialog(false);
+      setDeleteConfirmText('');
+      setDeletionReason('');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to submit deletion request';
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div>
@@ -289,7 +315,82 @@ const UserSettings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Danger Zone */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardDescription>
+              Irreversible actions — proceed with caution
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Delete Account</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Your Account</DialogTitle>
+            <DialogDescription>
+              This will permanently delete your account, profile, medical data, emergency contacts, 
+              and QR codes. Your data will be removed within 30 days as required by data protection 
+              regulations. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="deletion-reason">Reason for leaving (optional)</Label>
+              <Input
+                id="deletion-reason"
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder="Help us improve — why are you leaving?"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Type <strong>DELETE</strong> to confirm
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRequestDeletion}
+              disabled={loading || deleteConfirmText !== 'DELETE'}
+            >
+              Permanently Delete Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

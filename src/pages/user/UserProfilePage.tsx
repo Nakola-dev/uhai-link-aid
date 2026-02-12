@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ArrowLeft, Plus, Trash2, User, Heart, Phone as PhoneIcon, QrCode as QrCodeIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 import { QRCodeSVG } from 'qrcode.react';
 import { Badge } from '@/components/ui/badge';
 
@@ -23,11 +24,9 @@ interface EmergencyContact {
 const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [userId, setUserId] = useState('');
   const [qrToken, setQrToken] = useState('');
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState({
+  const { user, profile: authProfile, isAdmin, loading: authLoading } = useAuth();
+  const [profileForm, setProfileForm] = useState({
     full_name: '',
     email: '',
     phone: '',
@@ -46,53 +45,33 @@ const UserProfilePage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (user?.id && authProfile) {
+      setProfileForm({
+        full_name: authProfile.full_name || '',
+        email: user.email || '',
+        phone: authProfile.phone || '',
+        gender: authProfile.gender || '',
+        date_of_birth: authProfile.date_of_birth || '',
+        city: authProfile.city || '',
+        county: authProfile.county || '',
+        profile_photo_url: authProfile.profile_photo_url || '',
+        blood_type: authProfile.blood_type || '',
+        allergies: authProfile.allergies || [],
+        medications: authProfile.medications || [],
+        chronic_conditions: authProfile.chronic_conditions || [],
+        primary_hospital: authProfile.primary_hospital || '',
+      });
+      fetchAdditionalData(user.id);
+    }
+  }, [user?.id, authProfile]);
 
-  const fetchProfile = async () => {
+  const fetchAdditionalData = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      setUserId(session.user.id);
-
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      if (profileData) {
-        setUser(profileData);
-        setProfile({
-          full_name: profileData.full_name || '',
-          email: session.user.email || '',
-          phone: profileData.phone || '',
-          gender: profileData.gender || '',
-          date_of_birth: profileData.date_of_birth || '',
-          city: profileData.city || '',
-          county: profileData.county || '',
-          profile_photo_url: profileData.profile_photo_url || '',
-          blood_type: profileData.blood_type || '',
-          allergies: profileData.allergies || [],
-          medications: profileData.medications || [],
-          chronic_conditions: profileData.chronic_conditions || [],
-          primary_hospital: profileData.primary_hospital || '',
-        });
-      }
-
       // Fetch emergency contacts
       const { data: contactsData, error: contactsError } = await supabase
         .from('emergency_contacts')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .order('priority', { ascending: true });
 
       if (contactsError) throw contactsError;
@@ -102,17 +81,17 @@ const UserProfilePage = () => {
       const { data: tokenData } = await supabase
         .from('qr_access_tokens')
         .select('access_token')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle();
 
       if (tokenData) {
         setQrToken(tokenData.access_token);
       } else {
-        await generateQRToken(session.user.id);
+        await generateQRToken(userId);
       }
     } catch (error: unknown) {
-      toast.error('Failed to load profile');
+      toast.error('Failed to load profile data');
       console.error(error);
     } finally {
       setLoading(false);
@@ -136,14 +115,16 @@ const UserProfilePage = () => {
 
   const regenerateQRCode = async () => {
     try {
+      if (!user?.id) return;
+
       // Deactivate old tokens
       await supabase
         .from('qr_access_tokens')
         .update({ is_active: false })
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
 
       // Generate new token
-      await generateQRToken(userId);
+      await generateQRToken(user.id);
     } catch (error) {
       toast.error('Failed to regenerate QR code');
     }
@@ -178,31 +159,26 @@ const UserProfilePage = () => {
     setSaving(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
+      if (!user?.id) return;
 
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          full_name: profile.full_name,
-          phone: profile.phone,
-          gender: profile.gender,
-          date_of_birth: profile.date_of_birth,
-          city: profile.city,
-          county: profile.county,
-          profile_photo_url: profile.profile_photo_url,
-          blood_type: profile.blood_type,
-          allergies: profile.allergies,
-          medications: profile.medications,
-          chronic_conditions: profile.chronic_conditions,
-          primary_hospital: profile.primary_hospital,
+          full_name: profileForm.full_name,
+          phone: profileForm.phone,
+          gender: profileForm.gender,
+          date_of_birth: profileForm.date_of_birth,
+          city: profileForm.city,
+          county: profileForm.county,
+          profile_photo_url: profileForm.profile_photo_url,
+          blood_type: profileForm.blood_type,
+          allergies: profileForm.allergies,
+          medications: profileForm.medications,
+          chronic_conditions: profileForm.chronic_conditions,
+          primary_hospital: profileForm.primary_hospital,
         })
-        .eq('id', session.user.id);
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
@@ -210,7 +186,7 @@ const UserProfilePage = () => {
       const { data: existingContacts } = await supabase
         .from('emergency_contacts')
         .select('id')
-        .eq('user_id', session.user.id);
+        .eq('user_id', user.id);
 
       const existingIds = existingContacts?.map(c => c.id) || [];
       const currentIds = emergencyContacts.filter(c => c.id).map(c => c.id);
@@ -239,7 +215,7 @@ const UserProfilePage = () => {
           await supabase
             .from('emergency_contacts')
             .insert({
-              user_id: session.user.id,
+              user_id: user.id,
               name: contact.name,
               phone: contact.phone,
               relationship: contact.relationship,
@@ -260,7 +236,7 @@ const UserProfilePage = () => {
 
   const handleArrayInput = (field: 'allergies' | 'medications' | 'chronic_conditions', value: string) => {
     const items = value.split(',').map(item => item.trim()).filter(item => item);
-    setProfile(prev => ({ ...prev, [field]: items }));
+    setProfileForm(prev => ({ ...prev, [field]: items }));
   };
 
   const addEmergencyContact = () => {
@@ -288,9 +264,9 @@ const UserProfilePage = () => {
     return <Badge className="bg-blue-500">Backup</Badge>;
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <DashboardLayout user={user} isAdmin={isAdmin}>
+      <DashboardLayout user={authProfile} isAdmin={isAdmin}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -299,7 +275,7 @@ const UserProfilePage = () => {
   }
 
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={authProfile} isAdmin={isAdmin}>
       <div className="max-w-5xl mx-auto space-y-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -322,8 +298,8 @@ const UserProfilePage = () => {
                     <Label htmlFor="full_name">Full Name *</Label>
                     <Input
                       id="full_name"
-                      value={profile.full_name}
-                      onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                      value={profileForm.full_name}
+                      onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
                       required
                     />
                   </div>
@@ -333,7 +309,7 @@ const UserProfilePage = () => {
                     <Input
                       id="email"
                       type="email"
-                      value={profile.email}
+                      value={profileForm.email}
                       disabled
                       className="bg-muted"
                     />
@@ -344,15 +320,15 @@ const UserProfilePage = () => {
                     <Input
                       id="phone"
                       type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                       placeholder="+254..."
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={profile.gender} onValueChange={(value) => setProfile({ ...profile, gender: value })}>
+                    <Select value={profileForm.gender} onValueChange={(value) => setProfileForm({ ...profileForm, gender: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
@@ -370,8 +346,8 @@ const UserProfilePage = () => {
                     <Input
                       id="date_of_birth"
                       type="date"
-                      value={profile.date_of_birth}
-                      onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })}
+                      value={profileForm.date_of_birth}
+                      onChange={(e) => setProfileForm({ ...profileForm, date_of_birth: e.target.value })}
                     />
                   </div>
 
@@ -379,8 +355,8 @@ const UserProfilePage = () => {
                     <Label htmlFor="city">City</Label>
                     <Input
                       id="city"
-                      value={profile.city}
-                      onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                      value={profileForm.city}
+                      onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
                       placeholder="Nairobi"
                     />
                   </div>
@@ -389,8 +365,8 @@ const UserProfilePage = () => {
                     <Label htmlFor="county">County</Label>
                     <Input
                       id="county"
-                      value={profile.county}
-                      onChange={(e) => setProfile({ ...profile, county: e.target.value })}
+                      value={profileForm.county}
+                      onChange={(e) => setProfileForm({ ...profileForm, county: e.target.value })}
                       placeholder="Nairobi County"
                     />
                   </div>
@@ -400,8 +376,8 @@ const UserProfilePage = () => {
                     <Input
                       id="profile_photo_url"
                       type="url"
-                      value={profile.profile_photo_url}
-                      onChange={(e) => setProfile({ ...profile, profile_photo_url: e.target.value })}
+                      value={profileForm.profile_photo_url}
+                      onChange={(e) => setProfileForm({ ...profileForm, profile_photo_url: e.target.value })}
                       placeholder="https://..."
                     />
                   </div>
@@ -422,7 +398,7 @@ const UserProfilePage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="blood_type">Blood Type</Label>
-                    <Select value={profile.blood_type} onValueChange={(value) => setProfile({ ...profile, blood_type: value })}>
+                    <Select value={profileForm.blood_type} onValueChange={(value) => setProfileForm({ ...profileForm, blood_type: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select blood type" />
                       </SelectTrigger>
@@ -443,8 +419,8 @@ const UserProfilePage = () => {
                     <Label htmlFor="primary_hospital">Primary Hospital/Clinic</Label>
                     <Input
                       id="primary_hospital"
-                      value={profile.primary_hospital}
-                      onChange={(e) => setProfile({ ...profile, primary_hospital: e.target.value })}
+                      value={profileForm.primary_hospital}
+                      onChange={(e) => setProfileForm({ ...profileForm, primary_hospital: e.target.value })}
                       placeholder="Kenyatta National Hospital"
                     />
                   </div>
@@ -454,7 +430,7 @@ const UserProfilePage = () => {
                   <Label htmlFor="allergies">Allergies</Label>
                   <Input
                     id="allergies"
-                    value={profile.allergies.join(', ')}
+                    value={profileForm.allergies.join(', ')}
                     onChange={(e) => handleArrayInput('allergies', e.target.value)}
                     placeholder="Comma-separated (e.g., penicillin, peanuts)"
                   />
@@ -464,7 +440,7 @@ const UserProfilePage = () => {
                   <Label htmlFor="medications">Current Medications</Label>
                   <Input
                     id="medications"
-                    value={profile.medications.join(', ')}
+                    value={profileForm.medications.join(', ')}
                     onChange={(e) => handleArrayInput('medications', e.target.value)}
                     placeholder="Comma-separated (e.g., Aspirin 81mg, Metformin)"
                   />
@@ -474,7 +450,7 @@ const UserProfilePage = () => {
                   <Label htmlFor="chronic_conditions">Chronic Conditions</Label>
                   <Input
                     id="chronic_conditions"
-                    value={profile.chronic_conditions.join(', ')}
+                    value={profileForm.chronic_conditions.join(', ')}
                     onChange={(e) => handleArrayInput('chronic_conditions', e.target.value)}
                     placeholder="Comma-separated (e.g., Diabetes, Hypertension)"
                   />

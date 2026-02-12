@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, Heart, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,51 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/use-auth';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, isAdmin } = useAuth({ requireAuth: false });
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data);
-
-    // Check admin role using has_role() RPC (F-019: standardized pattern)
-    const { data: hasAdmin } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'admin'
-    });
-    setIsAdmin(!!hasAdmin);
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -80,7 +42,7 @@ const Header = () => {
 
   const links = user ? dashboardLinks : publicLinks;
 
-  const getInitials = (name?: string) => {
+  const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     return name
       .split(' ')

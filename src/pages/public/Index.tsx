@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, QrCode, Clock, Heart, CheckCircle2, ArrowRight, Activity, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,9 @@ interface EmergencyIncident {
 
 const UserEmergency = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
   const [triggering, setTriggering] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -32,42 +31,18 @@ const UserEmergency = () => {
   const [recentIncidents, setRecentIncidents] = useState<EmergencyIncident[]>([]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user?.id) {
+      fetchEmergencyData(user.id);
+    }
+  }, [user?.id]);
 
-  const fetchData = async () => {
+  const fetchEmergencyData = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileData) {
-        setUser(profileData);
-        setProfile(profileData);
-      }
-
-      // Check if admin
-      const { data: adminData } = await supabase.rpc('has_role', {
-        _user_id: session.user.id,
-        _role: 'admin'
-      });
-      if (adminData) setIsAdmin(adminData);
-
       // Fetch active incident
       const { data: activeData } = await supabase
         .from('emergency_incidents')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .eq('status', 'active')
         .order('triggered_at', { ascending: false })
         .limit(1)
@@ -84,7 +59,7 @@ const UserEmergency = () => {
       const { data: recentData } = await supabase
         .from('emergency_incidents')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .order('triggered_at', { ascending: false })
         .limit(5);
 
@@ -127,8 +102,7 @@ const UserEmergency = () => {
   const triggerEmergency = async () => {
     setTriggering(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!user?.id) return;
 
       // Request location if not already obtained
       if (!location) {
@@ -137,18 +111,18 @@ const UserEmergency = () => {
 
       // Get medical context from profile
       const medicalContext = {
-        blood_type: (profile as any)?.blood_type || 'Unknown',
-        allergies: (profile as any)?.allergies || [],
-        medications: (profile as any)?.medications || [],
-        chronic_conditions: (profile as any)?.chronic_conditions || [],
-        primary_hospital: (profile as any)?.primary_hospital || 'Not specified'
+        blood_type: profile?.blood_type || 'Unknown',
+        allergies: profile?.allergies || [],
+        medications: profile?.medications || [],
+        chronic_conditions: profile?.chronic_conditions || [],
+        primary_hospital: profile?.primary_hospital || 'Not specified'
       };
 
       // Insert emergency incident
       const { data: incidentData, error: incidentError } = await supabase
         .from('emergency_incidents')
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           status: 'active',
           location_lat: location?.lat,
           location_lng: location?.lng,
@@ -167,7 +141,7 @@ const UserEmergency = () => {
       setShowConfirmModal(false);
 
       // Notify emergency contacts (via Edge Function)
-      await notifyEmergencyContacts(session.user.id, incidentData.id);
+      await notifyEmergencyContacts(user.id, incidentData.id);
 
       toast.success('Emergency triggered! Notifying your emergency contacts...');
     } catch (error: unknown) {
@@ -229,16 +203,16 @@ const UserEmergency = () => {
 
       setActiveIncident(null);
       toast.success('Emergency marked as resolved');
-      await fetchData();
+      if (user?.id) await fetchEmergencyData(user.id);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Failed to resolve emergency: ${message}`);
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <DashboardLayout user={user} isAdmin={isAdmin}>
+      <DashboardLayout user={profile} isAdmin={isAdmin}>
         <div className="flex items-center justify-center h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -247,7 +221,7 @@ const UserEmergency = () => {
   }
 
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="space-y-2">

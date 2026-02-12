@@ -4,7 +4,7 @@ import {
   Phone, MapPin, Bell, Brain, Zap, CheckCircle2, Star,
   Download, Video, FileText, Calendar, Activity, Lock
 } from 'lucide-react';
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

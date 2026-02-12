@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Heart, User, AlertCircle, CheckCircle2, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 
 interface EmergencyContact {
   id?: string;
@@ -174,7 +174,7 @@ const Onboarding = () => {
       }
 
       // Save profile data
-      const updateData: Record<string, unknown> = {
+      const updateData = {
         full_name: basics.full_name || null,
         phone: basics.phone || null,
         city: basics.city || null,

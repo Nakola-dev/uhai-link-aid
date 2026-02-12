@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import { useAuth } from '@/hooks/use-auth';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlayCircle, CheckCircle2, Clock, BookOpen, Download, Calendar, User, CreditCard, Sparkles, FileText, ArrowRight } from 'lucide-react';
-import { useToast } from '@/hooks/shared/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -56,44 +57,34 @@ const UserLearn = () => {
   const [progress, setProgress] = useState<Record<string, ProgressData>>({});
   const [materials, setMaterials] = useState<DownloadableMaterial[]>([]);
   const [webinars, setWebinars] = useState<Webinar[]>([]);
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
   const [downloading, setDownloading] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user?.id) {
+      fetchData(user.id);
+    }
+  }, [user?.id]);
 
-  const fetchData = async () => {
+  const fetchData = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const [profileRes, adminRes, tutorialsRes, progressRes, materialsRes, webinarsRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' }),
+      const [tutorialsRes, progressRes, materialsRes, webinarsRes] = await Promise.all([
         supabase.from('tutorials').select('*').order('created_at', { ascending: false }),
-        supabase.from('user_learning_progress').select('*').eq('user_id', session.user.id),
+        supabase.from('user_learning_progress').select('*').eq('user_id', userId),
         supabase.from('downloadable_materials').select('*').order('created_at', { ascending: false }),
         supabase.from('webinars').select('*').gte('date_time', new Date().toISOString()).order('date_time', { ascending: true })
       ]);
 
-      if (profileRes.data) setUser(profileRes.data);
-      if (adminRes.data !== null) setIsAdmin(adminRes.data);
       if (tutorialsRes.data) setTutorials(tutorialsRes.data);
       if (materialsRes.data) setMaterials(materialsRes.data);
       if (webinarsRes.data) setWebinars(webinarsRes.data);
       
       if (progressRes.data) {
         const progressMap: Record<string, ProgressData> = {};
-        progressRes.data.forEach((p: Record<string, unknown>) => {
-          const tutorialId = p.tutorial_id as string;
-          progressMap[tutorialId] = p as unknown as ProgressData;
+        progressRes.data.forEach((p) => {
+          progressMap[p.tutorial_id] = p as unknown as ProgressData;
         });
         setProgress(progressMap);
       }
@@ -111,15 +102,14 @@ const UserLearn = () => {
 
   const updateProgress = async (tutorialId: string, percentage: number) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!user?.id) return;
 
       const completed = percentage >= 100;
 
       const { error } = await supabase
         .from('user_learning_progress')
         .upsert({
-          user_id: session.user.id,
+          user_id: user.id,
           tutorial_id: tutorialId,
           progress_percentage: percentage,
           completed,
@@ -192,9 +182,9 @@ const UserLearn = () => {
   const totalCompleted = Object.values(progress).filter(p => p.completed).length;
   const totalInProgress = Object.values(progress).filter(p => !p.completed && p.progress_percentage > 0).length;
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <DashboardLayout user={user} isAdmin={isAdmin}>
+      <DashboardLayout user={profile} isAdmin={isAdmin}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -203,7 +193,7 @@ const UserLearn = () => {
   }
 
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">

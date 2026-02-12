@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 
 const CONSENT_VERSION = '1.0.0';
 
@@ -20,6 +20,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [consentTerms, setConsentTerms] = useState(false);
   const [consentMedicalData, setConsentMedicalData] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -125,6 +126,33 @@ const Auth = () => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset link sent! Check your email inbox.');
+      setShowResetPassword(false);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to send reset link';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
@@ -146,6 +174,39 @@ const Auth = () => {
               </TabsList>
 
               <TabsContent value="signin">
+                {showResetPassword ? (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div className="text-center space-y-1 mb-2">
+                      <h3 className="font-semibold">Reset your password</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Enter your email and we'll send you a reset link
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Send Reset Link
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setShowResetPassword(false)}
+                    >
+                      Back to Sign In
+                    </Button>
+                  </form>
+                ) : (
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
@@ -169,11 +230,21 @@ const Auth = () => {
                       required
                     />
                   </div>
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setShowResetPassword(true)}
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
                   </Button>
                 </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup">

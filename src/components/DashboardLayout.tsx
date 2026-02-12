@@ -16,13 +16,13 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/shared/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardLayoutProps {
   children: ReactNode;
   user?: {
-    full_name?: string;
-    profile_photo_url?: string;
+    full_name?: string | null;
+    profile_photo_url?: string | null;
   } | null;
   isAdmin?: boolean;
 }

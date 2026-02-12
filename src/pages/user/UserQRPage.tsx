@@ -1,39 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Download, RefreshCw, Copy, Printer, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
-import DashboardLayout from '@/components/shared/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 
 const UserQRPage = () => {
   const [loading, setLoading] = useState(true);
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchQRToken();
-  }, []);
+    if (user?.id) {
+      fetchQRToken(user.id);
+    }
+  }, [user?.id]);
 
-  const fetchQRToken = async () => {
+  const fetchQRToken = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
       // Check if token exists
       const { data, error } = await supabase
         .from('qr_access_tokens')
         .select('access_token')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .maybeSingle();
 
@@ -55,15 +50,14 @@ const UserQRPage = () => {
 
   const generateNewToken = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!user?.id) return;
 
-      const token = `${session.user.id.slice(0, 8)}-${Date.now().toString(36)}`;
+      const token = `${user.id.slice(0, 8)}-${Date.now().toString(36)}`;
       
       const { data, error } = await supabase
         .from('qr_access_tokens')
         .upsert({
-          user_id: session.user.id,
+          user_id: user.id,
           access_token: token,
           is_active: true,
         })
@@ -131,9 +125,9 @@ const UserQRPage = () => {
 
   const qrUrl = qrToken ? `${window.location.origin}/profile/${qrToken}` : '';
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <DashboardLayout user={user} isAdmin={isAdmin}>
+      <DashboardLayout user={profile} isAdmin={isAdmin}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -142,7 +136,7 @@ const UserQRPage = () => {
   }
 
   return (
-    <DashboardLayout user={user} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="max-w-4xl mx-auto space-y-8">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4 no-print">
             <ArrowLeft className="mr-2 h-4 w-4" />

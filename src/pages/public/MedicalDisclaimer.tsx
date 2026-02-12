@@ -1,4 +1,4 @@
-import Layout from '@/components/shared/Layout';
+import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Heart, Phone } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';

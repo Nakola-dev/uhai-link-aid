@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 // Lazy-loaded pages — only downloaded when the route is visited (F-026)
 const Index = lazy(() => import("@/pages/public/Index"));
@@ -29,6 +30,7 @@ const UserSettings = lazy(() => import("@/pages/user/UserSettings"));
 const PublicProfileView = lazy(() => import("@/pages/public/PublicProfileView"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminEmergencyDashboard = lazy(() => import("@/pages/admin/AdminEmergencyDashboard"));
+const OfflinePage = lazy(() => import("@/pages/public/OfflinePage"));
 const NotFound = lazy(() => import("@/pages/public/NotFound"));
 
 const queryClient = new QueryClient();
@@ -48,6 +50,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <OfflineBanner />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -63,6 +66,7 @@ const App = () => (
           <Route path="/medical-disclaimer" element={<MedicalDisclaimer />} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/profile/:token" element={<PublicProfileView />} />
+          <Route path="/offline" element={<OfflinePage />} />
 
           {/* Protected dashboard routes (require auth & onboarding) */}
           <Route path="/dashboard" element={<ProtectedRoute requireOnboarding><UserDashboard /></ProtectedRoute>} />

@@ -112,3 +112,10 @@ The frontend code calls `supabase.auth.signInWithOAuth({ provider: 'google' })` 
 - [ ] CSV export works on Users, Audit Logs, Emergency Logs, Analytics tabs
 - [ ] Consent checkboxes appear on registration page
 - [ ] Privacy Policy and Terms of Service pages are accessible
+- [ ] PWA installs from browser (manifest.webmanifest served correctly)
+- [ ] Service worker registers and caches assets
+- [ ] Offline banner appears when connection drops
+- [ ] `/offline` page renders properly
+- [ ] Gzip-compressed assets served by hosting provider
+- [ ] CSP meta tag not blocking any legitimate resources
+- [ ] Core Web Vitals logged in dev console (LCP, CLS, FID/INP)

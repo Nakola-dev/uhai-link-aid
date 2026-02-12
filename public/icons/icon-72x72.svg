@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <rect width="72" height="72" rx="11" fill="#DC2626"/>
+  <rect x="31.5" y="18.5" width="9" height="35" rx="2" fill="white"/>
+  <rect x="18.5" y="31.5" width="35" height="9" rx="2" fill="white"/>
+</svg>

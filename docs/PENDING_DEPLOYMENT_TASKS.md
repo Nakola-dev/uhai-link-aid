@@ -31,6 +31,13 @@ Run these migrations against your Supabase project **in order**. You can apply t
   - Handles token validation, rate limiting (5/min per IP), scan logging, and profile fetch atomically
   - Grants execution to `anon` and `authenticated` roles
 
+### Migration 4: Phase 5 — User Suspension Infrastructure
+- **File**: `supabase/migrations/20251119_phase5_user_suspension.sql`
+- **What it does**:
+  - Adds `is_suspended BOOLEAN DEFAULT false` column to `profiles`
+  - Creates partial index on `is_suspended = true` for fast lookups
+  - Adds RLS policy blocking suspended users from creating emergency incidents
+
 ---
 
 ## 2. Supabase Edge Function Secrets
@@ -85,9 +92,10 @@ The frontend code calls `supabase.auth.signInWithOAuth({ provider: 'google' })` 
 
 ## 6. Post-Deployment Verification Checklist
 
-- [ ] All 3 migrations applied successfully
+- [ ] All 4 migrations applied successfully (Phases 1, 2, 3, 5)
 - [ ] `check_and_log_qr_scan` function exists in Supabase
 - [ ] `user_consents` table exists and has RLS enabled
+- [ ] `profiles.is_suspended` column exists (Phase 5 migration)
 - [ ] `OPENROUTER_API_KEY` secret is set in Edge Functions
 - [ ] `VITE_OPENROUTER_API_KEY` is removed from `.env`
 - [ ] AI Assistant works end-to-end (calls Edge Function, not client-side)
@@ -96,6 +104,11 @@ The frontend code calls `supabase.auth.signInWithOAuth({ provider: 'google' })` 
 - [ ] QR scan rate limiting works (test 6+ scans in 1 minute)
 - [ ] Forgot password flow sends reset email
 - [ ] Account deletion request submits and saves to database
-- [ ] Admin dashboard loads only for admin users
+- [ ] Admin dashboard loads with tabbed interface (8 tabs)
+- [ ] Admin user management shows suspend/reactivate actions
+- [ ] Admin audit log viewer shows filterable admin action history
+- [ ] Admin analytics tab shows live charts (recharts)
+- [ ] Admin emergency logs tab shows real Supabase data (not mock)
+- [ ] CSV export works on Users, Audit Logs, Emergency Logs, Analytics tabs
 - [ ] Consent checkboxes appear on registration page
 - [ ] Privacy Policy and Terms of Service pages are accessible

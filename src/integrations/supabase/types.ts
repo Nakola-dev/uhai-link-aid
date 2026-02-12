@@ -411,6 +411,7 @@ export type Database = {
           full_name: string | null
           gender: string | null
           id: string
+          is_suspended: boolean | null
           medications: string[] | null
           onboarding_completed: boolean | null
           onboarding_completed_at: string | null
@@ -433,6 +434,7 @@ export type Database = {
           full_name?: string | null
           gender?: string | null
           id: string
+          is_suspended?: boolean | null
           medications?: string[] | null
           onboarding_completed?: boolean | null
           onboarding_completed_at?: string | null
@@ -455,6 +457,7 @@ export type Database = {
           full_name?: string | null
           gender?: string | null
           id?: string
+          is_suspended?: boolean | null
           medications?: string[] | null
           onboarding_completed?: boolean | null
           onboarding_completed_at?: string | null

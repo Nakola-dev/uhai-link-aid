@@ -188,7 +188,7 @@ export const AdminContentTab = ({ onUpdate }: AdminContentTabProps) => {
                           {new Date(webinar.date_time).toLocaleString()}
                         </Badge>
                         {webinar.is_paid && (
-                          <Badge>KES {parseFloat(webinar.price).toFixed(2)}</Badge>
+                          <Badge>KES {webinar.price.toFixed(2)}</Badge>
                         )}
                         <span className="text-sm text-muted-foreground">
                           {webinar.current_attendees || 0} attendees

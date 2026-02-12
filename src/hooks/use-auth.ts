@@ -21,6 +21,7 @@ export interface Profile {
   profile_photo_url: string | null;
   primary_hospital: string | null;
   role: string | null;
+  is_suspended: boolean | null;
   onboarding_completed: boolean | null;
   onboarding_completed_at: string | null;
   updated_at: string | null;

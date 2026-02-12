@@ -5,9 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 interface ProtectedRouteProps {
   children: ReactNode;
   requireOnboarding?: boolean;
+  requireAdmin?: boolean;
 }
 
-export const ProtectedRoute = ({ children, requireOnboarding = false }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, requireOnboarding = false, requireAdmin = false }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -20,6 +21,19 @@ export const ProtectedRoute = ({ children, requireOnboarding = false }: Protecte
         if (!session) {
           navigate('/auth');
           return;
+        }
+
+        // Check admin role if required
+        if (requireAdmin) {
+          const { data: isAdmin } = await supabase.rpc('has_role', {
+            _user_id: session.user.id,
+            _role: 'admin',
+          });
+
+          if (!isAdmin) {
+            navigate('/dashboard');
+            return;
+          }
         }
 
         if (requireOnboarding) {
@@ -46,7 +60,7 @@ export const ProtectedRoute = ({ children, requireOnboarding = false }: Protecte
     };
 
     checkAuth();
-  }, [navigate, requireOnboarding]);
+  }, [navigate, requireOnboarding, requireAdmin]);
 
   if (isLoading) {
     return (

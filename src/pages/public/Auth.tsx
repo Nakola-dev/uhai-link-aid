@@ -1,20 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Layout from '@/components/shared/Layout';
+
+const CONSENT_VERSION = '1.0.0';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [consentTerms, setConsentTerms] = useState(false);
+  const [consentMedicalData, setConsentMedicalData] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +33,30 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!consentTerms || !consentMedicalData) {
+      toast.error('You must agree to the Terms of Service, Privacy Policy, and medical data processing consent to create an account.');
+      return;
+    }
+
+    // Client-side password strength validation
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      toast.error('Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      toast.error('Password must contain at least one number.');
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      toast.error('Password must contain at least one special character.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -45,6 +74,22 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
+        // Record consent grants
+        const consents = [
+          { consent_type: 'terms_of_service', consent_version: CONSENT_VERSION },
+          { consent_type: 'privacy_policy', consent_version: CONSENT_VERSION },
+          { consent_type: 'medical_data_processing', consent_version: CONSENT_VERSION },
+        ];
+
+        for (const consent of consents) {
+          await supabase.from('user_consents').insert({
+            user_id: data.user.id,
+            ...consent,
+            granted: true,
+            granted_at: new Date().toISOString(),
+          });
+        }
+
         toast.success('Account created successfully! Welcome to UhaiLink.');
         navigate('/dashboard');
       }
@@ -164,10 +209,56 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 8 characters with uppercase, number, and special character
+                    </p>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+
+                  {/* Consent Checkboxes */}
+                  <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="consent-terms"
+                        checked={consentTerms}
+                        onCheckedChange={(checked) => setConsentTerms(checked === true)}
+                      />
+                      <label htmlFor="consent-terms" className="text-sm leading-snug cursor-pointer">
+                        I agree to the{' '}
+                        <Link to="/terms-of-service" className="text-primary hover:underline font-medium" target="_blank">
+                          Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link to="/privacy-policy" className="text-primary hover:underline font-medium" target="_blank">
+                          Privacy Policy
+                        </Link>
+                        . <span className="text-destructive">*</span>
+                      </label>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="consent-medical"
+                        checked={consentMedicalData}
+                        onCheckedChange={(checked) => setConsentMedicalData(checked === true)}
+                      />
+                      <label htmlFor="consent-medical" className="text-sm leading-snug cursor-pointer">
+                        I consent to the processing of my{' '}
+                        <strong>medical and health data</strong> for emergency response purposes, 
+                        including sharing with emergency responders and contacts as described in the{' '}
+                        <Link to="/privacy-policy" className="text-primary hover:underline font-medium" target="_blank">
+                          Privacy Policy
+                        </Link>
+                        . <span className="text-destructive">*</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loading || !consentTerms || !consentMedicalData}
+                  >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
@@ -177,7 +268,10 @@ const Auth = () => {
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>
-                By continuing, you agree to our Terms of Service and Privacy Policy
+                Read our{' '}
+                <Link to="/medical-disclaimer" className="text-primary hover:underline">
+                  Medical &amp; Emergency Disclaimer
+                </Link>
               </p>
             </div>
           </CardContent>

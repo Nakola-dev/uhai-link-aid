@@ -11,6 +11,9 @@ import Contact from "@/pages/public/Contact";
 import Services from "@/pages/public/Services";
 import Learn from "@/pages/public/Learn";
 import Onboarding from "@/pages/public/Onboarding";
+import PrivacyPolicy from "@/pages/public/PrivacyPolicy";
+import TermsOfService from "@/pages/public/TermsOfService";
+import MedicalDisclaimer from "@/pages/public/MedicalDisclaimer";
 import UserDashboard from "@/pages/user/UserDashboard";
 import UserProfilePage from "@/pages/user/UserProfilePage";
 import UserQRPage from "@/pages/user/UserQRPage";
@@ -40,6 +43,9 @@ const App = () => (
           <Route path="/learn" element={<Learn />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/medical-disclaimer" element={<MedicalDisclaimer />} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/profile/:token" element={<PublicProfileView />} />
 
@@ -62,11 +68,11 @@ const App = () => (
           <Route path="/dashboard/user/buy-qr" element={<ProtectedRoute requireOnboarding><BuyQRTag /></ProtectedRoute>} />
           <Route path="/dashboard/user/settings" element={<ProtectedRoute requireOnboarding><UserSettings /></ProtectedRoute>} />
 
-          {/* Admin routes: primary `/admin` and legacy `/dashboard/admin` */}
-          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/emergencies" element={<ProtectedRoute><AdminEmergencyDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/admin/emergencies" element={<ProtectedRoute><AdminEmergencyDashboard /></ProtectedRoute>} />
+          {/* Admin routes: require auth + admin role */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/emergencies" element={<ProtectedRoute requireAdmin><AdminEmergencyDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/admin/emergencies" element={<ProtectedRoute requireAdmin><AdminEmergencyDashboard /></ProtectedRoute>} />
 
           {/* Catch-all - must be last */}
           <Route path="*" element={<NotFound />} />

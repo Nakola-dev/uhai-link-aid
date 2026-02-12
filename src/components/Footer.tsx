@@ -90,10 +90,26 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4 text-lg">Support</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="hover:text-primary transition-colors cursor-pointer hover:translate-x-1 inline-block">Help Center</li>
-              <li className="hover:text-primary transition-colors cursor-pointer hover:translate-x-1 inline-block">Privacy Policy</li>
-              <li className="hover:text-primary transition-colors cursor-pointer hover:translate-x-1 inline-block">Terms of Service</li>
-              <li className="hover:text-primary transition-colors cursor-pointer hover:translate-x-1 inline-block">FAQ</li>
+              <li>
+                <Link to="/contact" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms-of-service" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/medical-disclaimer" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
+                  Medical Disclaimer
+                </Link>
+              </li>
             </ul>
           </div>
 

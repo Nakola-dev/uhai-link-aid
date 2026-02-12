@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -169,11 +169,11 @@ When providing first aid guidance, structure your response as:
 3. When to Call Emergency Services (danger signs)`;
   };
 
-  // Call OpenRouter API
+  // Call AI via Edge Function proxy (API key stays server-side)
   const callAI = async (userMessage: string): Promise<string> => {
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (!apiKey) {
-      throw new Error('OpenRouter API key not configured');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('You must be logged in to use the AI assistant');
     }
 
     const conversationHistory = messages.map((msg) => ({
@@ -186,36 +186,22 @@ When providing first aid guidance, structure your response as:
       content: userMessage,
     });
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.href,
-        'X-Title': 'UhaiLink First Aid Assistant',
+    const { data, error } = await supabase.functions.invoke('ai-chat-proxy', {
+      body: {
+        messages: conversationHistory,
+        systemPrompt: buildSystemPrompt(),
       },
-      body: JSON.stringify({
-        model: 'openrouter/auto',
-        messages: [
-          {
-            role: 'system',
-            content: buildSystemPrompt(),
-          },
-          ...conversationHistory,
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json() as Record<string, unknown>;
-      throw new Error(`OpenRouter API error: ${JSON.stringify(errorData)}`);
+    if (error) {
+      throw new Error(error.message || 'Failed to get AI response');
     }
 
-    const data = await response.json() as Record<string, unknown>;
-    const choices = data.choices as Array<{ message: { content: string } }>;
-    return choices[0].message.content;
+    if (!data?.content) {
+      throw new Error('No response from AI service');
+    }
+
+    return data.content;
   };
 
   // Send message
@@ -328,7 +314,10 @@ When providing first aid guidance, structure your response as:
         <Alert className="mb-6 border-yellow-200 bg-yellow-50">
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-yellow-800">
-            <strong>Not a substitute for professional medical care.</strong> For life-threatening emergencies, call 999 immediately or use the Emergency SOS button.
+            <strong>Not a substitute for professional medical care.</strong> This AI provides general first aid guidance only — 
+            it is not a medical device and cannot diagnose or treat conditions. For life-threatening emergencies, 
+            call <strong>999</strong> immediately or use the Emergency SOS button.{' '}
+            <Link to="/medical-disclaimer" className="underline font-medium">Read full disclaimer</Link>.
           </AlertDescription>
         </Alert>
 

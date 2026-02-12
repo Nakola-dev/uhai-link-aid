@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -213,9 +214,7 @@ const UserEmergency = () => {
   if (authLoading || loading) {
     return (
       <DashboardLayout user={profile} isAdmin={isAdmin}>
-        <div className="flex items-center justify-center h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <DashboardSkeleton cards={0} rows={4} />
       </DashboardLayout>
     );
   }

@@ -267,7 +267,10 @@ const AdminDashboard = () => {
     return (
       <Layout>
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Loading admin panel…</p>
+          </div>
         </div>
       </Layout>
     );

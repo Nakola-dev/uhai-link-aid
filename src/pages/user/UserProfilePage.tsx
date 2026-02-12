@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, ArrowLeft, Plus, Trash2, User, Heart, Phone as PhoneIcon, QrCode as QrCodeIcon, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { Badge } from '@/components/ui/badge';
 
@@ -267,9 +268,7 @@ const UserProfilePage = () => {
   if (authLoading || loading) {
     return (
       <DashboardLayout user={authProfile} isAdmin={isAdmin}>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <DashboardSkeleton cards={0} rows={6} />
       </DashboardLayout>
     );
   }

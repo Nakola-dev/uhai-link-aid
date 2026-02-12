@@ -65,7 +65,10 @@ export const ProtectedRoute = ({ children, requireOnboarding = false, requireAdm
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-white border-t-transparent" />
+          <p className="text-sm text-white/70">Verifying access…</p>
+        </div>
       </div>
     );
   }

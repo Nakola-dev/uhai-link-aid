@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -10,21 +13,35 @@ import { useToast } from '@/hooks/use-toast';
 import { Moon, Sun, Save, Lock, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useTheme } from 'next-themes';
+
+const passwordSchema = z.object({
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Must contain at least one special character'),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+type PasswordValues = z.infer<typeof passwordSchema>;
 
 const UserSettings = () => {
   const [loading, setLoading] = useState(false);
   const { user, profile, isAdmin, refreshProfile } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
     city: '',
     county: '',
   });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  const passwordForm = useForm<PasswordValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { newPassword: '', confirmPassword: '' },
   });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -74,32 +91,12 @@ const UserSettings = () => {
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleUpdatePassword = async (values: PasswordValues) => {
     setLoading(true);
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
+        password: values.newPassword
       });
 
       if (error) throw error;
@@ -109,11 +106,7 @@ const UserSettings = () => {
         description: "Password updated successfully",
       });
 
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      passwordForm.reset();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       toast({
@@ -127,10 +120,11 @@ const UserSettings = () => {
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
     toast({
       title: "Theme Updated",
-      description: `Switched to ${!darkMode ? 'dark' : 'light'} mode`,
+      description: `Switched to ${newTheme} mode`,
     });
   };
 
@@ -256,26 +250,33 @@ const UserSettings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <form onSubmit={passwordForm.handleSubmit(handleUpdatePassword)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
                 <Input
                   id="newPassword"
                   type="password"
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                   placeholder="Enter new password"
+                  {...passwordForm.register('newPassword')}
                 />
+                {passwordForm.formState.errors.newPassword && (
+                  <p className="text-xs text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Minimum 8 characters with uppercase, number, and special character
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                   placeholder="Confirm new password"
+                  {...passwordForm.register('confirmPassword')}
                 />
+                {passwordForm.formState.errors.confirmPassword && (
+                  <p className="text-xs text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
+                )}
               </div>
               <Button type="submit" disabled={loading}>
                 <Lock className="h-4 w-4 mr-2" />
@@ -296,7 +297,7 @@ const UserSettings = () => {
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {darkMode ? (
+                {theme === 'dark' ? (
                   <Moon className="h-5 w-5 text-muted-foreground" />
                 ) : (
                   <Sun className="h-5 w-5 text-muted-foreground" />
@@ -309,7 +310,7 @@ const UserSettings = () => {
                 </div>
               </div>
               <Switch
-                checked={darkMode}
+                checked={theme === 'dark'}
                 onCheckedChange={toggleDarkMode}
               />
             </div>

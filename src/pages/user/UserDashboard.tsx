@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, BookOpen, Video } from 'lucide-react';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 
 interface Organization {
   id: string;
@@ -52,9 +53,7 @@ const UserDashboard = () => {
   if (authLoading || loading) {
     return (
       <DashboardLayout user={profile} isAdmin={isAdmin}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        <DashboardSkeleton cards={3} rows={3} />
       </DashboardLayout>
     );
   }

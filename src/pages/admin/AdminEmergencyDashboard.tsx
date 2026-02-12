@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -238,9 +239,7 @@ const AdminEmergencyDashboard = () => {
   if (!isAdmin) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
+        <DashboardSkeleton showHeader={false} cards={3} rows={4} />
       </DashboardLayout>
     );
   }
@@ -248,9 +247,7 @@ const AdminEmergencyDashboard = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
+        <DashboardSkeleton cards={3} rows={5} />
       </DashboardLayout>
     );
   }

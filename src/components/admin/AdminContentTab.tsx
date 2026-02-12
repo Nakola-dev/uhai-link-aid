@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminTabSkeleton from '@/components/admin/AdminTabSkeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -94,13 +95,7 @@ export const AdminContentTab = ({ onUpdate }: AdminContentTabProps) => {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </CardContent>
-      </Card>
-    );
+    return <AdminTabSkeleton rows={4} />;
   }
 
   return (

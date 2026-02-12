@@ -1,4 +1,7 @@
 import { Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +10,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 
+const contactSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  subject: z.string().min(3, 'Subject must be at least 3 characters'),
+  message: z.string().min(10, 'Message must be at least 10 characters'),
+});
+type ContactValues = z.infer<typeof contactSchema>;
+
 const Contact = () => {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactValues>({
+    resolver: zodResolver(contactSchema),
+  });
+
+  const onSubmit = (_values: ContactValues) => {
     toast.success('Message sent! We\'ll get back to you soon.');
+    reset();
   };
 
   const contactInfo = [
@@ -108,20 +123,23 @@ const Contact = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="John Doe" required />
+                      <Input id="name" placeholder="John Doe" {...register('name')} />
+                      {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="john@example.com" required />
+                      <Input id="email" type="email" placeholder="john@example.com" {...register('email')} />
+                      {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" placeholder="How can we help?" required />
+                    <Input id="subject" placeholder="How can we help?" {...register('subject')} />
+                    {errors.subject && <p className="text-xs text-destructive">{errors.subject.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message">Message</Label>
@@ -129,8 +147,9 @@ const Contact = () => {
                       id="message"
                       placeholder="Tell us more about your inquiry..."
                       rows={6}
-                      required
+                      {...register('message')}
                     />
+                    {errors.message && <p className="text-xs text-destructive">{errors.message.message}</p>}
                   </div>
                   <Button type="submit" className="w-full md:w-auto">
                     Send Message

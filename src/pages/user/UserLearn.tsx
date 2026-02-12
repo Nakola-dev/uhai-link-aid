@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -185,9 +186,7 @@ const UserLearn = () => {
   if (authLoading || loading) {
     return (
       <DashboardLayout user={profile} isAdmin={isAdmin}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        <DashboardSkeleton cards={3} rows={5} />
       </DashboardLayout>
     );
   }

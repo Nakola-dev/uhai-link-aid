@@ -8,6 +8,7 @@ import { ArrowLeft, Download, RefreshCw, Copy, Printer, Loader2, AlertTriangle }
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardSkeleton from '@/components/DashboardSkeleton';
 
 const UserQRPage = () => {
   const [loading, setLoading] = useState(true);
@@ -128,9 +129,7 @@ const UserQRPage = () => {
   if (authLoading || loading) {
     return (
       <DashboardLayout user={profile} isAdmin={isAdmin}>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <DashboardSkeleton cards={1} rows={2} />
       </DashboardLayout>
     );
   }

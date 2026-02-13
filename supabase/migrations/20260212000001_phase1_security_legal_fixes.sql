@@ -63,9 +63,9 @@ CREATE POLICY "Admins can view all consents"
   USING (public.has_role(auth.uid(), 'admin'));
 
 -- Indexes
-CREATE INDEX idx_user_consents_user_id ON public.user_consents(user_id);
-CREATE INDEX idx_user_consents_type ON public.user_consents(consent_type);
-CREATE INDEX idx_user_consents_granted ON public.user_consents(user_id, consent_type, granted);
+CREATE INDEX IF NOT EXISTS idx_user_consents_user_id ON public.user_consents(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_consents_type ON public.user_consents(consent_type);
+CREATE INDEX IF NOT EXISTS idx_user_consents_granted ON public.user_consents(user_id, consent_type, granted);
 
 -- Trigger for updated_at
 CREATE TRIGGER update_user_consents_updated_at

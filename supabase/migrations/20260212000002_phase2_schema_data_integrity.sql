@@ -25,19 +25,29 @@
 -- 1. FIX SEVERITY COLUMN TYPE (F-010)
 -- ============================================
 
--- Convert severity from TEXT to INTEGER
--- Map existing text values to numbers, default unknown/null to 1
-ALTER TABLE public.emergency_incidents 
-  ALTER COLUMN severity TYPE INTEGER 
-  USING CASE 
-    WHEN severity ~ '^\d+$' THEN severity::INTEGER 
-    WHEN severity = 'critical' THEN 10
-    WHEN severity = 'high' THEN 8
-    WHEN severity = 'medium' THEN 5
-    WHEN severity = 'low' THEN 2
-    WHEN severity = 'unknown' THEN 1
-    ELSE 1 
-  END;
+-- Convert severity from TEXT to INTEGER (idempotent — skips if already INTEGER)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'emergency_incidents' 
+    AND column_name = 'severity' 
+    AND data_type = 'text'
+  ) THEN
+    ALTER TABLE public.emergency_incidents 
+      ALTER COLUMN severity TYPE INTEGER 
+      USING CASE 
+        WHEN severity ~ '^\d+$' THEN severity::INTEGER 
+        WHEN severity = 'critical' THEN 10
+        WHEN severity = 'high' THEN 8
+        WHEN severity = 'medium' THEN 5
+        WHEN severity = 'low' THEN 2
+        WHEN severity = 'unknown' THEN 1
+        ELSE 1 
+      END;
+  END IF;
+END $$;
 
 ALTER TABLE public.emergency_incidents 
   ALTER COLUMN severity SET DEFAULT 1;
@@ -92,10 +102,10 @@ CREATE POLICY "Admins can insert access logs"
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Indexes for access logs
-CREATE INDEX idx_data_access_logs_accessor ON public.data_access_logs(accessor_id);
-CREATE INDEX idx_data_access_logs_accessed_user ON public.data_access_logs(accessed_user_id);
-CREATE INDEX idx_data_access_logs_created_at ON public.data_access_logs(created_at);
-CREATE INDEX idx_data_access_logs_access_type ON public.data_access_logs(access_type);
+CREATE INDEX IF NOT EXISTS idx_data_access_logs_accessor ON public.data_access_logs(accessor_id);
+CREATE INDEX IF NOT EXISTS idx_data_access_logs_accessed_user ON public.data_access_logs(accessed_user_id);
+CREATE INDEX IF NOT EXISTS idx_data_access_logs_created_at ON public.data_access_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_data_access_logs_access_type ON public.data_access_logs(access_type);
 
 -- ============================================
 -- 4. LEGAL DOCUMENT VERSIONS TABLE
@@ -130,8 +140,8 @@ CREATE POLICY "Admins can manage legal documents"
   USING (public.has_role(auth.uid(), 'admin'));
 
 -- Indexes
-CREATE INDEX idx_legal_docs_type ON public.legal_document_versions(document_type);
-CREATE INDEX idx_legal_docs_active ON public.legal_document_versions(document_type, superseded_date) 
+CREATE INDEX IF NOT EXISTS idx_legal_docs_type ON public.legal_document_versions(document_type);
+CREATE INDEX IF NOT EXISTS idx_legal_docs_active ON public.legal_document_versions(document_type, superseded_date) 
   WHERE superseded_date IS NULL;
 
 -- Trigger for updated_at
@@ -182,9 +192,9 @@ CREATE POLICY "Admins can update deletion requests"
   USING (public.has_role(auth.uid(), 'admin'));
 
 -- Indexes
-CREATE INDEX idx_deletion_requests_user ON public.account_deletion_requests(user_id);
-CREATE INDEX idx_deletion_requests_status ON public.account_deletion_requests(status);
-CREATE INDEX idx_deletion_requests_pending ON public.account_deletion_requests(status, requested_at) 
+CREATE INDEX IF NOT EXISTS idx_deletion_requests_user ON public.account_deletion_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_deletion_requests_status ON public.account_deletion_requests(status);
+CREATE INDEX IF NOT EXISTS idx_deletion_requests_pending ON public.account_deletion_requests(status, requested_at) 
   WHERE status = 'pending';
 
 -- Trigger for updated_at
@@ -232,9 +242,9 @@ CREATE POLICY "Admins can insert any security event"
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Indexes (security events are heavily queried for monitoring)
-CREATE INDEX idx_security_events_user ON public.security_events(user_id);
-CREATE INDEX idx_security_events_type ON public.security_events(event_type);
-CREATE INDEX idx_security_events_severity ON public.security_events(severity);
-CREATE INDEX idx_security_events_created_at ON public.security_events(created_at);
-CREATE INDEX idx_security_events_critical ON public.security_events(severity, created_at) 
+CREATE INDEX IF NOT EXISTS idx_security_events_user ON public.security_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_security_events_type ON public.security_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_security_events_severity ON public.security_events(severity);
+CREATE INDEX IF NOT EXISTS idx_security_events_created_at ON public.security_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_security_events_critical ON public.security_events(severity, created_at) 
   WHERE severity IN ('error', 'critical');

@@ -16,15 +16,24 @@ CREATE INDEX IF NOT EXISTS idx_profiles_is_suspended
 
 -- 4. Add RLS policy: users cannot do anything if suspended (defense-in-depth)
 -- This blocks suspended users from inserting emergency incidents
-CREATE POLICY IF NOT EXISTS "suspended_users_cannot_create_incidents"
-  ON public.emergency_incidents
-  FOR INSERT
-  WITH CHECK (
-    NOT EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.is_suspended = true
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'emergency_incidents' 
+    AND policyname = 'suspended_users_cannot_create_incidents'
+  ) THEN
+    CREATE POLICY "suspended_users_cannot_create_incidents"
+      ON public.emergency_incidents
+      FOR INSERT
+      WITH CHECK (
+        NOT EXISTS (
+          SELECT 1 FROM public.profiles
+          WHERE profiles.id = auth.uid()
+            AND profiles.is_suspended = true
+        )
+      );
+  END IF;
+END $$;
 
 COMMENT ON COLUMN public.profiles.is_suspended IS 'Admin-managed suspension flag. Suspended users cannot trigger emergencies.';

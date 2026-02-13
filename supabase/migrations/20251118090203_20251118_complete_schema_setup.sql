@@ -36,10 +36,10 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create enums
-CREATE TYPE public.app_role AS ENUM ('admin', 'user');
-CREATE TYPE public.chat_role AS ENUM ('user', 'assistant');
-CREATE TYPE public.admin_action_type AS ENUM ('create', 'update', 'delete', 'view', 'export');
+-- Create enums (idempotent — safe to re-run)
+DO $$ BEGIN CREATE TYPE public.app_role AS ENUM ('admin', 'user'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.chat_role AS ENUM ('user', 'assistant'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE public.admin_action_type AS ENUM ('create', 'update', 'delete', 'view', 'export'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Create profiles table (linked to auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -666,30 +666,30 @@ AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Create indexes for performance
-CREATE INDEX idx_profiles_user_id ON public.profiles(id);
-CREATE INDEX idx_user_roles_user_id ON public.user_roles(user_id);
-CREATE INDEX idx_emergency_contacts_user_id ON public.emergency_contacts(user_id);
-CREATE INDEX idx_qr_access_tokens_user_id ON public.qr_access_tokens(user_id);
-CREATE INDEX idx_qr_access_tokens_token ON public.qr_access_tokens(access_token);
-CREATE INDEX idx_user_learning_progress_user_id ON public.user_learning_progress(user_id);
-CREATE INDEX idx_user_learning_progress_tutorial_id ON public.user_learning_progress(tutorial_id);
-CREATE INDEX idx_chat_history_user_id ON public.chat_history(user_id);
-CREATE INDEX idx_chat_history_conversation_id ON public.chat_history(conversation_id);
-CREATE INDEX idx_chat_history_created_at ON public.chat_history(created_at);
-CREATE INDEX idx_admin_logs_admin_user_id ON public.admin_logs(admin_user_id);
-CREATE INDEX idx_admin_logs_created_at ON public.admin_logs(created_at);
-CREATE INDEX idx_admin_logs_entity_type ON public.admin_logs(entity_type);
-CREATE INDEX idx_analytics_metric_key ON public.analytics(metric_key);
-CREATE INDEX idx_analytics_date_recorded ON public.analytics(date_recorded);
-CREATE INDEX idx_organization_services_organization_id ON public.organization_services(organization_id);
-CREATE INDEX idx_emergency_incidents_user_id ON public.emergency_incidents(user_id);
-CREATE INDEX idx_emergency_incidents_status ON public.emergency_incidents(status);
-CREATE INDEX idx_emergency_incidents_created_at ON public.emergency_incidents(created_at);
-CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
-CREATE INDEX idx_notifications_emergency_incident_id ON public.notifications(emergency_incident_id);
-CREATE INDEX idx_notifications_status ON public.notifications(status);
-CREATE INDEX idx_qr_scans_qr_token_id ON public.qr_scans(qr_token_id);
-CREATE INDEX idx_qr_scans_created_at ON public.qr_scans(created_at);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_contacts_user_id ON public.emergency_contacts(user_id);
+CREATE INDEX IF NOT EXISTS idx_qr_access_tokens_user_id ON public.qr_access_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_qr_access_tokens_token ON public.qr_access_tokens(access_token);
+CREATE INDEX IF NOT EXISTS idx_user_learning_progress_user_id ON public.user_learning_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_learning_progress_tutorial_id ON public.user_learning_progress(tutorial_id);
+CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON public.chat_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_history_conversation_id ON public.chat_history(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_chat_history_created_at ON public.chat_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_admin_user_id ON public.admin_logs(admin_user_id);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON public.admin_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_type ON public.admin_logs(entity_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_metric_key ON public.analytics(metric_key);
+CREATE INDEX IF NOT EXISTS idx_analytics_date_recorded ON public.analytics(date_recorded);
+CREATE INDEX IF NOT EXISTS idx_organization_services_organization_id ON public.organization_services(organization_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_incidents_user_id ON public.emergency_incidents(user_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_incidents_status ON public.emergency_incidents(status);
+CREATE INDEX IF NOT EXISTS idx_emergency_incidents_created_at ON public.emergency_incidents(created_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_emergency_incident_id ON public.notifications(emergency_incident_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_status ON public.notifications(status);
+CREATE INDEX IF NOT EXISTS idx_qr_scans_qr_token_id ON public.qr_scans(qr_token_id);
+CREATE INDEX IF NOT EXISTS idx_qr_scans_created_at ON public.qr_scans(created_at);
 
 -- Insert seed data for emergency organizations
 INSERT INTO public.emergency_organizations (name, type, phone, email) VALUES
@@ -705,45 +705,10 @@ INSERT INTO public.tutorials (title, description, video_url) VALUES
   ('Sharing Your QR Code', 'Learn how to print, wear, or share your QR code safely', 'https://youtube.com/watch?v=demo2'),
   ('What Responders See', 'Demo of what emergency responders can access', 'https://youtube.com/watch?v=demo3'),
   ('Managing Emergency Contacts', 'Add and update your emergency contact information', 'https://youtube.com/watch?v=demo4');
+
 -- ========================================
--- PHASE 2: CORE PLATFORM COMPLETION TABLES
+-- PHASE 2: QR SCANS ENHANCEMENTS
 -- ========================================
-
--- Chat History for AI Assistant
-CREATE TABLE IF NOT EXISTS public.chat_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  session_start TIMESTAMP DEFAULT NOW(),
-  messages JSONB DEFAULT '[]'::jsonb, -- Array of {role, content, timestamp}
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_chat_history_user_id ON public.chat_history(user_id);
-CREATE INDEX idx_chat_history_created_at ON public.chat_history(created_at);
-
--- RLS Policies for chat_history
-ALTER TABLE public.chat_history ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own chat history"
-  ON public.chat_history FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own chat messages"
-  ON public.chat_history FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own chat history"
-  ON public.chat_history FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Admins can view all chat history"
-  ON public.chat_history FOR SELECT
-  USING (public.has_role(auth.uid(), 'admin'));
-
--- Trigger for chat_history updated_at
-CREATE TRIGGER update_chat_history_timestamp BEFORE UPDATE ON public.chat_history
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Enhanced QR Scans table with rate limiting metadata
 ALTER TABLE public.qr_scans ADD COLUMN IF NOT EXISTS scan_count INTEGER DEFAULT 1;

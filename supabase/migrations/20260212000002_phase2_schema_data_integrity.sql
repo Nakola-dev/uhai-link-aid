@@ -26,6 +26,7 @@
 -- ============================================
 
 -- Convert severity from TEXT to INTEGER (idempotent — skips if already INTEGER)
+-- Must drop the TEXT default first, otherwise Postgres can't auto-cast it.
 DO $$
 BEGIN
   IF EXISTS (
@@ -35,6 +36,9 @@ BEGIN
     AND column_name = 'severity' 
     AND data_type = 'text'
   ) THEN
+    -- Drop the existing TEXT default ('unknown') before type conversion
+    ALTER TABLE public.emergency_incidents ALTER COLUMN severity DROP DEFAULT;
+
     ALTER TABLE public.emergency_incidents 
       ALTER COLUMN severity TYPE INTEGER 
       USING CASE 
@@ -49,6 +53,7 @@ BEGIN
   END IF;
 END $$;
 
+-- Set the new INTEGER default (runs safely whether column is already INTEGER or just converted)
 ALTER TABLE public.emergency_incidents 
   ALTER COLUMN severity SET DEFAULT 1;
 

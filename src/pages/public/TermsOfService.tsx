@@ -1,5 +1,5 @@
 import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText } from 'lucide-react';
 
 const TermsOfService = () => {
@@ -11,7 +11,7 @@ const TermsOfService = () => {
             <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <FileText className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-3xl">Terms of Service</CardTitle>
+            <h1 className="font-display text-3xl font-bold tracking-tight">Terms of Service</h1>
             <p className="text-muted-foreground text-sm">
               Last updated: February 12, 2026 &bull; Version 1.0.0
             </p>

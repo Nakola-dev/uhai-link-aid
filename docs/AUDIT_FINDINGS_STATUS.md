@@ -4,6 +4,15 @@
 > **Audit Source**: `docs/UHAILINK_SYSTEM_AUDIT.md` (40 findings)  
 > **Status**: ALL FINDINGS RESOLVED
 
+> **Correction (2026-10-21).** A later review ([UI_UX_TRANSFORMATION_REPORT.md](UI_UX_TRANSFORMATION_REPORT.md)) found
+> that some items recorded below as resolved were not fully resolved in code at that time:
+> - **F-013** QR rate limiting used a client-supplied IP that the app always sent as `'unknown'` (one global limit); fixed in migration `20261021000001_*` (not yet deployed).
+> - **F-014** homepage statistics queried tables anonymous visitors cannot read under RLS, so they always showed 0; the section was removed.
+> - **F-015** the service worker cached authenticated medical API responses; caching is now limited to public content.
+> - "Admin tabs use real Supabase data": the Payments tab showed mock transactions, and the emergency tabs used a profile join with no foreign key (runtime failure).
+> - "TypeScript errors: 0" was measured with a command that checks no files; the real app config had 11 errors (now 0).
+> The original record below is kept unchanged for history.
+
 ---
 
 ## Summary

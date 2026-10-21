@@ -1,4 +1,5 @@
-import { Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, MapPin, MessageSquare } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
+import { EMERGENCY_NUMBERS, telHref } from '@/lib/emergency-numbers';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -18,28 +20,28 @@ const contactSchema = z.object({
 });
 type ContactValues = z.infer<typeof contactSchema>;
 
+const SUPPORT_EMAIL = 'support@uhailink.com';
+
 const Contact = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
   });
+  const [handedOff, setHandedOff] = useState(false);
 
-  const onSubmit = (_values: ContactValues) => {
-    toast.success('Message sent! We\'ll get back to you soon.');
-    reset();
+  // There is no messaging backend: hand the message to the user's email app, and say so.
+  const onSubmit = (values: ContactValues) => {
+    const body = `${values.message}\n\n— ${values.name} (${values.email})`;
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(body)}`;
+    setHandedOff(true);
+    toast.info('Your email app should open with your message. It is only sent when you press Send there.');
   };
 
   const contactInfo = [
     {
       icon: Mail,
       title: 'Email',
-      value: 'support@uhailink.com',
-      link: 'mailto:support@uhailink.com',
-    },
-    {
-      icon: Phone,
-      title: 'Phone',
-      value: '+254 700 000 000',
-      link: 'tel:+254700000000',
+      value: SUPPORT_EMAIL,
+      link: `mailto:${SUPPORT_EMAIL}`,
     },
     {
       icon: MapPin,
@@ -107,8 +109,12 @@ const Contact = () => {
                     For medical emergencies, please contact:
                   </p>
                   <div className="space-y-2">
-                    <p className="font-semibold">Kenya Red Cross: 1199</p>
-                    <p className="font-semibold">Emergency: 999</p>
+                    {EMERGENCY_NUMBERS.map((line) => (
+                      <p key={line.number} className="font-semibold">
+                        {line.label}:{' '}
+                        <a href={telHref(line.number)} className="underline underline-offset-2">{line.number}</a>
+                      </p>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -152,8 +158,13 @@ const Contact = () => {
                     {errors.message && <p className="text-xs text-destructive">{errors.message.message}</p>}
                   </div>
                   <Button type="submit" className="w-full md:w-auto">
-                    Send Message
+                    Open in my email app
                   </Button>
+                  <p className="text-sm text-muted-foreground" role={handedOff ? 'status' : undefined}>
+                    {handedOff
+                      ? `Didn't open? Email us directly at ${SUPPORT_EMAIL}.`
+                      : `This opens your email app with the message filled in, addressed to ${SUPPORT_EMAIL}.`}
+                  </p>
                 </form>
               </CardContent>
             </Card>

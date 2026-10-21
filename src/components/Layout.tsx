@@ -10,16 +10,16 @@ interface LayoutProps {
 
 const Layout = ({ children, showHeader = true, showFooter = true }: LayoutProps) => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/30 to-background">
-      {/* Skip to main content - WCAG 2.1 AA: 2.4.1 */}
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Skip to main content - WCAG 2.4.1 */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg focus:outline-none"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-skip focus:top-3 focus:left-3 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow-elevation-2"
       >
         Skip to main content
       </a>
       {showHeader && <Header />}
-      <main id="main-content" className="flex-1" role="main">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       {showFooter && <Footer />}
     </div>
   );

@@ -43,9 +43,8 @@ const getSeverityLabel = (severity: number | null): string => {
 
 const getSeverityColor = (severity: number | null): string => {
   if (severity === null) return 'text-muted-foreground';
-  if (severity >= 9) return 'text-red-600';
-  if (severity >= 7) return 'text-orange-600';
-  return 'text-yellow-600';
+  if (severity >= 7) return 'text-destructive';
+  return 'text-warning';
 };
 
 export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) => {
@@ -60,20 +59,22 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
     try {
       setLoading(true);
 
+      // emergency_incidents.user_id references auth.users (not profiles), so there is no
+      // embeddable relationship; load the matching profiles separately and merge.
       const { data, error } = await supabase
         .from('emergency_incidents')
-        .select(`
-          id, user_id, incident_type, severity, status, description,
-          location_lat, location_lng, location_address, responder_notes,
-          created_at, updated_at,
-          profiles!emergency_incidents_user_id_fkey(full_name, phone)
-        `)
+        .select('id, user_id, incident_type, severity, status, description, location_lat, location_lng, location_address, responder_notes, created_at, updated_at')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
-      const incidents = (data || []) as EmergencyLog[];
+      const userIds = [...new Set((data ?? []).map((incident) => incident.user_id))];
+      const { data: people } = userIds.length
+        ? await supabase.from('profiles').select('id, full_name, phone').in('id', userIds)
+        : { data: [] };
+      const byId = new Map((people ?? []).map((p) => [p.id, { full_name: p.full_name, phone: p.phone }]));
+      const incidents: EmergencyLog[] = (data ?? []).map((incident) => ({ ...incident, profiles: byId.get(incident.user_id) ?? null }));
       setLogs(incidents);
       setFilteredLogs(incidents);
 
@@ -166,8 +167,8 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Clock className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-success/10 rounded-lg">
+                <Clock className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.resolved}</p>
@@ -259,7 +260,7 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
                           {log.description || 'No description'}
                         </p>
                         {log.responder_notes && (
-                          <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                          <p className="text-sm text-primary mt-1">
                             Responder: {log.responder_notes}
                           </p>
                         )}
@@ -278,17 +279,27 @@ export const AdminEmergencyLogsTab = ({ onUpdate }: AdminEmergencyLogsTabProps) 
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
                       {new Date(log.created_at).toLocaleString()}
                     </div>
-                    {log.location_address && (
+                    {log.location_address ? (
                       <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
+                        <MapPin className="h-4 w-4" aria-hidden="true" />
                         {log.location_address}
                       </div>
-                    )}
+                    ) : log.location_lat != null && log.location_lng != null ? (
+                      <a
+                        href={`https://maps.google.com/?q=${log.location_lat},${log.location_lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                      >
+                        <MapPin className="h-4 w-4" aria-hidden="true" />
+                        Open location in maps
+                      </a>
+                    ) : null}
                     <Badge variant="outline">{getSeverityLabel(log.severity)}</Badge>
                   </div>
                 </div>

@@ -1,24 +1,34 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PRIMARY_EMERGENCY_NUMBER, telHref } from "@/lib/emergency-numbers";
+import Layout from "@/components/Layout";
 
-const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 underline hover:text-blue-700">
-          Return to Home
-        </a>
+const NotFound = () => (
+  <Layout>
+    <div className="container flex flex-col items-start gap-6 py-24 sm:py-32">
+      <p className="text-sm font-semibold uppercase tracking-wider text-primary">Error 404</p>
+      <h1 className="font-display text-4xl font-bold tracking-tight">We couldn't find that page</h1>
+      <p className="max-w-xl text-lg text-muted-foreground">
+        The link may be broken or the page may have moved. If you scanned a QR code, check that the whole code was
+        captured and try again.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild size="lg">
+          <Link to="/">
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+            Go to the home page
+          </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <a href={telHref(PRIMARY_EMERGENCY_NUMBER.number)}>
+            <Phone className="mr-2 h-4 w-4" aria-hidden="true" />
+            Emergency? Call {PRIMARY_EMERGENCY_NUMBER.number}
+          </a>
+        </Button>
       </div>
     </div>
-  );
-};
+  </Layout>
+);
 
 export default NotFound;

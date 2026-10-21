@@ -157,8 +157,8 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <ShieldCheck className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-success/10 rounded-lg">
+                <ShieldCheck className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{users.length - suspendedCount}</p>
@@ -275,7 +275,7 @@ export const AdminUsersTab = ({ onUpdate }: AdminUsersTabProps) => {
                             onClick={() => { setSelectedUser(user); setSuspendDialogOpen(true); }}
                           >
                             {user.is_suspended ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-success" />
                             ) : (
                               <Ban className="h-4 w-4 text-destructive" />
                             )}

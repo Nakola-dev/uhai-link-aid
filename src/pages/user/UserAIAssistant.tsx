@@ -1,14 +1,18 @@
-import { useEffect, useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, Bot, Loader2, Phone, RotateCcw, Send, ShieldAlert, WifiOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
+import { useAuth, Profile } from '@/hooks/use-auth';
+import { useOnlineStatus } from '@/hooks/use-online-status';
+import { PRIMARY_EMERGENCY_NUMBER, telHref } from '@/lib/emergency-numbers';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import AnswerContent from '@/components/assistant/AnswerContent';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardSkeleton from '@/components/DashboardSkeleton';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Send, AlertTriangle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Message {
   id: string;
@@ -17,454 +21,309 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatHistory {
-  id: string;
-  user_id: string;
-  session_start: Date;
-  messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: string }>;
-  created_at: string;
-  updated_at: string;
-}
+type StoredMessage = { role: 'user' | 'assistant'; content: string; timestamp: string };
 
-interface UserProfile {
-  full_name?: string;
-  blood_type?: string;
-  allergies?: string[];
-  medications?: string[];
-  chronic_conditions?: string[];
-  [key: string]: unknown;
+const SUGGESTIONS = [
+  'Someone is choking',
+  'How do I treat a burn?',
+  'What are the signs of a stroke?',
+  'How do I stop heavy bleeding?',
+  'Someone is having an asthma attack',
+  'What should I do for a nosebleed?',
+];
+
+/** Preference only (no health data): whether to include the medical profile in prompts. */
+const SHARE_PREF_KEY = 'uhailink.ai.share-medical-context';
+
+const readSharePreference = () => {
+  try {
+    return localStorage.getItem(SHARE_PREF_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const listOrNone = (items: string[] | null | undefined) => (items && items.length > 0 ? items.join(', ') : 'none recorded');
+
+/**
+ * The user's name is never sent. Medical details are included only when the user
+ * has switched on "Use my medical profile" (DPIA: AI chat is not linked to the
+ * medical profile by default).
+ */
+function buildSystemPrompt(profile: Profile | null, shareMedical: boolean): string {
+  const medicalContext = shareMedical && profile
+    ? `The user chose to share this medical background:
+- Blood type: ${profile.blood_type || 'not recorded'}
+- Allergies: ${listOrNone(profile.allergies)}
+- Medications: ${listOrNone(profile.medications)}
+- Chronic conditions: ${listOrNone(profile.chronic_conditions)}`
+    : 'No medical background was shared. Do not assume any.';
+
+  return `You are Uhai Assist, a first-aid guidance assistant for people in Kenya.
+
+1. Give clear, step-by-step first-aid instructions in plain, non-technical language.
+2. For anything life-threatening (unresponsive, not breathing, severe bleeding, chest pain, stroke signs, severe allergic reaction, seizures) tell the user to call 999 or 112 immediately, before anything else.
+3. Never diagnose, prescribe, or give medication doses. Recommend professional medical care for anything serious.
+4. Ask a short clarifying question when the situation is unclear.
+5. Be calm, kind and brief.
+
+${medicalContext}
+
+Structure first-aid answers with these headings:
+### Immediate actions
+### While waiting for help
+### When to call 999 or 112`;
 }
 
 const UserAIAssistant = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
+  const { isOnline } = useOnlineStatus();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [sending, setSending] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [emergencyTriggering, setEmergencyTriggering] = useState(false);
+  const [failedPrompt, setFailedPrompt] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState('');
+  const [shareMedical, setShareMedical] = useState(readSharePreference);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom of messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, sending, failedPrompt]);
 
-  // Load chat history and user profile
   useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
     const loadSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          navigate('/auth');
-          return;
-        }
-
-        // Fetch user profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        setProfile(profileData as UserProfile);
-
-        // Load or create chat session
-        const { data: chatData } = await supabase
+        const { data: chat } = await supabase
           .from('chat_history')
-          .select('*')
-          .eq('user_id', session.user.id)
+          .select('id, messages')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (chatData) {
-          setSessionId(chatData.id);
-          const parsedMessages = (chatData.messages as Array<{role: 'user' | 'assistant'; content: string; timestamp: string}>).map((msg) => ({
-            id: crypto.randomUUID(),
-            role: msg.role,
-            content: msg.content,
-            timestamp: new Date(msg.timestamp),
-          }));
-          setMessages(parsedMessages);
+        if (cancelled) return;
+        if (chat) {
+          setSessionId(chat.id);
+          const stored = (chat.messages as unknown as StoredMessage[]) ?? [];
+          setMessages(stored.map((m) => ({ id: crypto.randomUUID(), role: m.role, content: m.content, timestamp: new Date(m.timestamp) })));
         } else {
-          // Create new session
-          const newSessionId = crypto.randomUUID();
-          const { data: newChat } = await supabase
+          const { data: created } = await supabase
             .from('chat_history')
-            .insert({
-              id: newSessionId,
-              user_id: session.user.id,
-              session_start: new Date().toISOString(),
-              messages: [],
-            })
-            .select()
+            .insert({ id: crypto.randomUUID(), user_id: user.id, session_start: new Date().toISOString(), messages: [] })
+            .select('id')
             .single();
-
-          if (newChat) {
-            setSessionId(newChat.id);
-            // Add welcome message
-            const welcomeMessage: Message = {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: `Hello! I'm Uhai Assist, your AI-powered first aid guide. I'm here to provide step-by-step emergency guidance based on your medical profile. How can I help you today?`,
-              timestamp: new Date(),
-            };
-            setMessages([welcomeMessage]);
-          }
+          if (created && !cancelled) setSessionId(created.id);
         }
-      } catch (error) {
-        console.error('Error loading session:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load chat session',
-        });
+      } catch {
+        // History is a convenience; the assistant still works without it.
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoadingHistory(false);
       }
     };
-
     loadSession();
-  }, [navigate, toast]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
-  // Build system prompt with medical context
-  const buildSystemPrompt = (): string => {
-    const medicalContext = profile
-      ? `
-User Medical Profile:
-- Name: ${profile.full_name || 'Not provided'}
-- Blood Type: ${profile.blood_type || 'Unknown'}
-- Allergies: ${Array.isArray(profile.allergies) ? profile.allergies.join(', ') : 'None listed'}
-- Medications: ${Array.isArray(profile.medications) ? profile.medications.join(', ') : 'None listed'}
-- Chronic Conditions: ${Array.isArray(profile.chronic_conditions) ? profile.chronic_conditions.join(', ') : 'None listed'}
-`.trim()
-      : '';
-
-    return `You are Uhai Assist, an AI-powered first aid guidance system designed to provide emergency medical support. Your role is to:
-
-1. Provide clear, step-by-step first aid instructions
-2. Adapt guidance based on the user's medical history
-3. Always prioritize calling emergency services (999 in Kenya) for life-threatening emergencies
-4. Use non-technical, easy-to-understand language
-5. Ask clarifying questions to understand the emergency
-6. NEVER provide diagnosis or prescription advice
-7. ALWAYS recommend professional medical evaluation for serious conditions
-
-Medical Context:
-${medicalContext}
-
-Important Safety Guidelines:
-- If the situation involves loss of consciousness, severe bleeding, difficulty breathing, chest pain, or other life-threatening symptoms, IMMEDIATELY advise calling 999 (Kenya Emergency Services)
-- Guide the user to trigger the Emergency SOS feature if critical
-- Provide first aid steps while emergency services are being contacted
-- Be compassionate and reassuring
-
-When providing first aid guidance, structure your response as:
-1. Immediate Actions (what to do right now)
-2. While Waiting for Help (ongoing care)
-3. When to Call Emergency Services (danger signs)`;
-  };
-
-  // Call AI via Edge Function proxy (API key stays server-side)
-  const callAI = async (userMessage: string): Promise<string> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error('You must be logged in to use the AI assistant');
-    }
-
-    const conversationHistory = messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    conversationHistory.push({
-      role: 'user',
-      content: userMessage,
-    });
-
-    const { data, error } = await supabase.functions.invoke('ai-chat-proxy', {
-      body: {
-        messages: conversationHistory,
-        systemPrompt: buildSystemPrompt(),
-      },
-    });
-
-    if (error) {
-      throw new Error(error.message || 'Failed to get AI response');
-    }
-
-    if (!data?.content) {
-      throw new Error('No response from AI service');
-    }
-
-    return data.content;
-  };
-
-  // Send message
-  const handleSendMessage = async () => {
-    if (!input.trim() || sending) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    setSending(true);
-
+  const toggleShare = (value: boolean) => {
+    setShareMedical(value);
     try {
-      // Add user message to chat
-      const userMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: userMessage,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMsg]);
+      localStorage.setItem(SHARE_PREF_KEY, value ? '1' : '0');
+    } catch {
+      // Preference simply won't persist.
+    }
+  };
 
-      // Call AI
-      const assistantResponse = await callAI(userMessage);
+  const persist = async (all: Message[]) => {
+    if (!sessionId) return;
+    await supabase
+      .from('chat_history')
+      .update({
+        messages: all.map((m) => ({ role: m.role, content: m.content, timestamp: m.timestamp.toISOString() })) as unknown as Json,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+  };
 
-      // Add assistant message
-      const assistantMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: assistantResponse,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      // Save to database
-      if (sessionId) {
-        const allMessages = [...messages, userMsg, assistantMsg];
-        await supabase
-          .from('chat_history')
-          .update({
-            messages: allMessages.map((msg) => ({
-              role: msg.role,
-              content: msg.content,
-              timestamp: msg.timestamp.toISOString(),
-            })),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', sessionId);
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to get AI response';
-      console.error('AI error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: errorMsg,
+  const ask = async (prompt: string, history: Message[]) => {
+    setSending(true);
+    setFailedPrompt(null);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ content?: string }>('ai-chat-proxy', {
+        body: {
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          systemPrompt: buildSystemPrompt(profile, shareMedical),
+        },
       });
-
-      // Add error message
-      const errorMsg_text: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `I encountered an error while processing your request. Please try again or contact support if the problem persists.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg_text]);
+      if (error || !data?.content) throw error ?? new Error('Empty response');
+      const answer: Message = { id: crypto.randomUUID(), role: 'assistant', content: data.content, timestamp: new Date() };
+      const next = [...history, answer];
+      setMessages(next);
+      persist(next);
+    } catch {
+      setFailedPrompt(prompt);
     } finally {
       setSending(false);
     }
   };
 
-  // Trigger emergency from chat
-  const handleTriggerEmergency = async () => {
-    if (emergencyTriggering) return;
+  const send = (text: string) => {
+    const prompt = text.trim();
+    if (!prompt || sending) return;
+    const userMessage: Message = { id: crypto.randomUUID(), role: 'user', content: prompt, timestamp: new Date() };
+    const history = [...messages, userMessage];
+    setMessages(history);
+    setInput('');
+    ask(prompt, history);
+  };
 
-    setEmergencyTriggering(true);
-    try {
-      // Navigate to emergency page which will handle the rest
-      navigate('/dashboard/emergency');
-    } catch (error) {
-      console.error('Error triggering emergency:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to trigger emergency',
-      });
-    } finally {
-      setEmergencyTriggering(false);
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    send(input);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      send(input);
     }
   };
 
-  if (loading) {
+  if (authLoading || loadingHistory) {
     return (
-      <DashboardLayout>
-        <DashboardSkeleton showHeader={true} cards={0} rows={6} />
+      <DashboardLayout user={profile} isAdmin={isAdmin}>
+        <DashboardSkeleton showHeader cards={0} rows={6} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-primary mb-2">Uhai Assist</h1>
-          <p className="text-muted-foreground">
-            AI-powered first aid guidance available 24/7
-          </p>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
+      <div className="mx-auto flex max-w-3xl flex-col h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-8rem)] min-h-[28rem]">
+        <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Bot className="h-6 w-6 text-primary" aria-hidden="true" />
+              Uhai Assist
+            </h1>
+            <p className="text-sm text-muted-foreground">AI first-aid guidance. Not a doctor and not an emergency service.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild size="sm" variant="destructive">
+              <a href={telHref(PRIMARY_EMERGENCY_NUMBER.number)}>
+                <Phone className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                Call {PRIMARY_EMERGENCY_NUMBER.number}
+              </a>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/dashboard/emergency">
+                <ShieldAlert className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                SOS
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        <Alert className="mb-6 border-yellow-200 bg-yellow-50">
-          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            <strong>Not a substitute for professional medical care.</strong> This AI provides general first aid guidance only — 
-            it is not a medical device and cannot diagnose or treat conditions. For life-threatening emergencies, 
-            call <strong>999</strong> immediately or use the Emergency SOS button.{' '}
-            <Link to="/medical-disclaimer" className="underline font-medium">Read full disclaimer</Link>.
-          </AlertDescription>
-        </Alert>
-
-        <Card className="h-[600px] flex flex-col">
-          <CardHeader>
-            <CardTitle>First Aid Assistant</CardTitle>
-            <CardDescription>
-              Ask for first aid guidance or describe your situation
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="flex-1 overflow-hidden flex flex-col">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto mb-4 pr-4 space-y-4">
-              {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-center">
-                  <div className="text-muted-foreground">
-                    <p className="text-lg mb-2">Start a conversation</p>
-                    <p className="text-sm">Ask me about first aid, emergency procedures, or describe your situation</p>
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border bg-card p-4" role="log" aria-live="polite" aria-label="Conversation">
+          {messages.length === 0 ? (
+            <div className="flex h-full flex-col justify-center gap-5 text-center">
+              <div>
+                <p className="font-semibold">What's happening?</p>
+                <p className="text-sm text-muted-foreground">Describe the situation, or start with one of these.</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map((suggestion) => (
+                  <Button key={suggestion} variant="outline" size="sm" className="rounded-full" disabled={!isOnline}
+                    onClick={() => send(suggestion)}>
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div key={message.id} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  <div className={cn(
+                    'max-w-[88%] rounded-2xl px-4 py-3',
+                    message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted rounded-bl-sm'
+                  )}>
+                    <span className="sr-only">{message.role === 'user' ? 'You said:' : 'Uhai Assist said:'}</span>
+                    {message.role === 'assistant' ? (
+                      <AnswerContent text={message.content} />
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                    )}
+                    <span className={cn('mt-1 block text-[11px]', message.role === 'user' ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground border border-border'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {message.timestamp.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </>
+              ))}
+              {sending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Uhai Assist is writing a response…
+                </div>
+              )}
+              {failedPrompt && (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" role="alert">
+                  <AlertCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                  <span className="flex-1">
+                    {isOnline ? "The assistant didn't respond." : "You're offline, so the assistant can't respond."}{' '}
+                    If this is an emergency, call {PRIMARY_EMERGENCY_NUMBER.number} now.
+                  </span>
+                  <Button size="sm" variant="outline" disabled={!isOnline} onClick={() => ask(failedPrompt, messages)}>
+                    <RotateCcw className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                    Try again
+                  </Button>
+                </div>
               )}
             </div>
+          )}
+          <div ref={endRef} />
+        </div>
 
-            {/* Input area */}
-            <div className="space-y-3 border-t pt-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Describe your emergency or ask for first aid help..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  disabled={sending}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={sending || !input.trim()}
-                  size="icon"
-                >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-
-              <Button
-                onClick={handleTriggerEmergency}
-                disabled={emergencyTriggering}
-                variant="destructive"
-                className="w-full h-10 text-base font-bold"
-              >
-                {emergencyTriggering ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Triggering...
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Trigger Emergency SOS
-                  </>
-                )}
-              </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                For life-threatening emergencies, use the Emergency SOS button above or call 999
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Medical Context Summary */}
-        {profile && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-base">Your Medical Profile (Used for Guidance)</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-muted-foreground">Blood Type</p>
-                  <p className="font-semibold">{profile.blood_type || 'Not provided'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Allergies</p>
-                  <p className="font-semibold">
-                    {Array.isArray(profile.allergies) && profile.allergies.length > 0
-                      ? profile.allergies.join(', ')
-                      : 'None listed'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Medications</p>
-                  <p className="font-semibold">
-                    {Array.isArray(profile.medications) && profile.medications.length > 0
-                      ? profile.medications.join(', ')
-                      : 'None listed'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Chronic Conditions</p>
-                  <p className="font-semibold">
-                    {Array.isArray(profile.chronic_conditions) && profile.chronic_conditions.length > 0
-                      ? profile.chronic_conditions.join(', ')
-                      : 'None listed'}
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                Keep your profile updated to receive more personalized guidance
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <form onSubmit={onSubmit} className="pt-3 space-y-2">
+          {!isOnline && (
+            <p className="flex items-center gap-2 text-sm text-warning" role="status">
+              <WifiOff className="h-4 w-4" aria-hidden="true" />
+              You're offline. The assistant needs an internet connection.
+            </p>
+          )}
+          <div className="flex items-end gap-2">
+            <label htmlFor="assistant-input" className="sr-only">Describe the situation or ask a first-aid question</label>
+            <Textarea
+              id="assistant-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Describe what's happening…"
+              rows={1}
+              className="min-h-11 max-h-32 resize-none"
+              disabled={!isOnline}
+            />
+            <Button type="submit" size="icon" className="h-11 w-11 shrink-0" disabled={sending || !input.trim() || !isOnline} aria-label="Send">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <label className="flex items-center gap-2">
+              <Switch checked={shareMedical} onCheckedChange={toggleShare} aria-describedby="share-hint" />
+              Use my medical profile
+            </label>
+            <span id="share-hint">
+              {shareMedical
+                ? 'Blood type, allergies, medications and conditions are sent with your question — never your name.'
+                : 'Off: only your question is sent.'}{' '}
+              <Link to="/medical-disclaimer" className="underline underline-offset-2">Disclaimer</Link>
+            </span>
+          </div>
+        </form>
       </div>
     </DashboardLayout>
   );

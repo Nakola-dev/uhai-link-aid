@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardSkeleton from '@/components/DashboardSkeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, BookOpen, Building, QrCode, AlertTriangle, CreditCard, FileText, BarChart3 } from 'lucide-react';
+import { Users, BookOpen, Building, QrCode, AlertTriangle, CreditCard, FileText, BarChart3 } from 'lucide-react';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
 import { AdminContentTab } from '@/components/admin/AdminContentTab';
 import { AdminOrganizationsTab } from '@/components/admin/AdminOrganizationsTab';
@@ -40,22 +40,14 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-3">
-          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Admin Panel</h1>
-            <p className="text-muted-foreground text-sm">
-              Manage platform users, content, and monitor system activity
-            </p>
-          </div>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">Admin dashboard</h1>
+          <p className="text-muted-foreground">Users, content, organisations, QR codes and the audit trail.</p>
         </div>
 
-        {/* Tabbed Interface */}
+        {/* Tabbed Interface: horizontally scrollable on small screens, labels always visible */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+          <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto bg-muted/60 p-1 [&>button]:shrink-0 [&_span]:inline">
             <TabsTrigger value="analytics" className="gap-1.5">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>

@@ -1,228 +1,135 @@
 import { useEffect, useState } from 'react';
+import { BookOpen, Calendar, Download, Video } from 'lucide-react';
+import { toast } from 'sonner';
 import AdminTabSkeleton from '@/components/admin/AdminTabSkeleton';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Video, Calendar, Download } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface AdminContentTabProps {
   onUpdate: () => void;
 }
 
-interface ContentTutorial {
-  id: string;
-  title: string;
-  description: string | null;
-  video_url: string | null;
-  category: string | null;
-  is_premium: boolean;
-  view_count: number;
-  created_at: string;
+interface ContentLists {
+  tutorials: Tables<'tutorials'>[];
+  articles: Tables<'articles'>[];
+  webinars: Tables<'webinars'>[];
+  materials: Tables<'downloadable_materials'>[];
 }
 
-interface ContentArticle {
-  id: string;
-  title: string;
-  summary: string | null;
-  category: string | null;
-  is_featured: boolean;
-  view_count: number;
-  created_at: string;
-}
+const Row = ({ title, description, children }: { title: string; description?: string | null; children?: React.ReactNode }) => (
+  <li className="rounded-lg border p-4">
+    <p className="font-semibold">{title}</p>
+    {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+    {children && <div className="mt-2 flex flex-wrap items-center gap-2">{children}</div>}
+  </li>
+);
 
-interface ContentWebinar {
-  id: string;
-  title: string;
-  description: string | null;
-  date_time: string;
-  is_paid: boolean;
-  price: number;
-  current_attendees: number;
-  created_at: string;
-}
+const Empty = ({ text }: { text: string }) => <p className="py-8 text-center text-muted-foreground">{text}</p>;
 
-interface ContentMaterial {
-  id: string;
-  title: string;
-  description: string | null;
-  file_type: string;
-  category: string | null;
-  is_premium: boolean;
-  download_count: number;
-  created_at: string;
-}
-
-export const AdminContentTab = ({ onUpdate }: AdminContentTabProps) => {
-  const [tutorials, setTutorials] = useState<ContentTutorial[]>([]);
-  const [articles, setArticles] = useState<ContentArticle[]>([]);
-  const [webinars, setWebinars] = useState<ContentWebinar[]>([]);
-  const [materials, setMaterials] = useState<ContentMaterial[]>([]);
+/** Read-only overview of published learning content (there is no in-app editor yet). */
+export const AdminContentTab = (_props: AdminContentTabProps) => {
+  const [content, setContent] = useState<ContentLists | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const [tutorials, articles, webinars, materials] = await Promise.all([
+          supabase.from('tutorials').select('*').order('created_at', { ascending: false }),
+          supabase.from('articles').select('*').order('created_at', { ascending: false }),
+          supabase.from('webinars').select('*').order('date_time', { ascending: false }),
+          supabase.from('downloadable_materials').select('*').order('created_at', { ascending: false }),
+        ]);
+        const failed = [tutorials, articles, webinars, materials].find((r) => r.error);
+        if (failed?.error) throw failed.error;
+        setContent({
+          tutorials: tutorials.data ?? [],
+          articles: articles.data ?? [],
+          webinars: webinars.data ?? [],
+          materials: materials.data ?? [],
+        });
+      } catch {
+        toast.error('Content could not be loaded');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchContent();
   }, []);
 
-  const fetchContent = async () => {
-    try {
-      setLoading(true);
-      
-      const [tutorialsRes, articlesRes, webinarsRes, materialsRes] = await Promise.all([
-        supabase.from('tutorials').select('*').order('created_at', { ascending: false }),
-        supabase.from('articles').select('*').order('created_at', { ascending: false }),
-        supabase.from('webinars').select('*').order('date_time', { ascending: false }),
-        supabase.from('downloadable_materials').select('*').order('created_at', { ascending: false })
-      ]);
-
-      if (tutorialsRes.error) throw tutorialsRes.error;
-      if (articlesRes.error) throw articlesRes.error;
-      if (webinarsRes.error) throw webinarsRes.error;
-      if (materialsRes.error) throw materialsRes.error;
-
-      setTutorials(tutorialsRes.data || []);
-      setArticles(articlesRes.data || []);
-      setWebinars(webinarsRes.data || []);
-      setMaterials(materialsRes.data || []);
-    } catch (error) {
-      console.error('Error fetching content:', error);
-      toast.error('Failed to load content');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <AdminTabSkeleton rows={4} />;
-  }
+  if (loading) return <AdminTabSkeleton rows={4} />;
+  if (!content) return <Empty text="Content could not be loaded." />;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Content Management</CardTitle>
-        <CardDescription>Manage learning materials, tutorials, and webinars</CardDescription>
+        <CardTitle>Learning content</CardTitle>
+        <CardDescription>
+          What is currently published on the Learn pages. Content is read-only here; edit it in the Supabase dashboard.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="tutorials" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="tutorials">
-              <Video className="h-4 w-4 mr-2" />
-              Tutorials ({tutorials.length})
-            </TabsTrigger>
-            <TabsTrigger value="articles">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Articles ({articles.length})
-            </TabsTrigger>
-            <TabsTrigger value="webinars">
-              <Calendar className="h-4 w-4 mr-2" />
-              Webinars ({webinars.length})
-            </TabsTrigger>
-            <TabsTrigger value="materials">
-              <Download className="h-4 w-4 mr-2" />
-              Materials ({materials.length})
-            </TabsTrigger>
+          <TabsList className="flex h-auto flex-wrap justify-start">
+            <TabsTrigger value="tutorials"><Video className="mr-2 h-4 w-4" aria-hidden="true" />Tutorials ({content.tutorials.length})</TabsTrigger>
+            <TabsTrigger value="articles"><BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />Articles ({content.articles.length})</TabsTrigger>
+            <TabsTrigger value="webinars"><Calendar className="mr-2 h-4 w-4" aria-hidden="true" />Webinars ({content.webinars.length})</TabsTrigger>
+            <TabsTrigger value="materials"><Download className="mr-2 h-4 w-4" aria-hidden="true" />Downloads ({content.materials.length})</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tutorials" className="space-y-4">
-            {tutorials.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No tutorials available</p>
-            ) : (
-              tutorials.map((tutorial) => (
-                <div key={tutorial.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-semibold">{tutorial.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{tutorial.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {tutorial.category && <Badge variant="outline">{tutorial.category}</Badge>}
-                        {tutorial.is_premium && <Badge>Premium</Badge>}
-                        <span className="text-sm text-muted-foreground">
-                          {tutorial.view_count || 0} views
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+          <TabsContent value="tutorials">
+            {content.tutorials.length === 0 ? <Empty text="No tutorials published." /> : (
+              <ul className="space-y-3">
+                {content.tutorials.map((t) => (
+                  <Row key={t.id} title={t.title} description={t.description}>
+                    <Badge variant={t.video_url ? 'secondary' : 'outline'}>{t.video_url ? 'Has video' : 'No video link'}</Badge>
+                  </Row>
+                ))}
+              </ul>
             )}
           </TabsContent>
 
-          <TabsContent value="articles" className="space-y-4">
-            {articles.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No articles available</p>
-            ) : (
-              articles.map((article) => (
-                <div key={article.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-semibold">{article.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{article.summary}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline">{article.category}</Badge>
-                        {article.is_featured && <Badge>Featured</Badge>}
-                        <span className="text-sm text-muted-foreground">
-                          {article.view_count || 0} views
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+          <TabsContent value="articles">
+            {content.articles.length === 0 ? <Empty text="No articles published." /> : (
+              <ul className="space-y-3">
+                {content.articles.map((a) => (
+                  <Row key={a.id} title={a.title} description={a.summary}>
+                    <Badge variant="outline">{a.category}</Badge>
+                    {a.is_featured && <Badge>Featured on Learn</Badge>}
+                    {!a.content && <Badge variant="outline">No body text</Badge>}
+                  </Row>
+                ))}
+              </ul>
             )}
           </TabsContent>
 
-          <TabsContent value="webinars" className="space-y-4">
-            {webinars.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No webinars scheduled</p>
-            ) : (
-              webinars.map((webinar) => (
-                <div key={webinar.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-semibold">{webinar.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{webinar.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline">
-                          {new Date(webinar.date_time).toLocaleString()}
-                        </Badge>
-                        {webinar.is_paid && (
-                          <Badge>KES {webinar.price.toFixed(2)}</Badge>
-                        )}
-                        <span className="text-sm text-muted-foreground">
-                          {webinar.current_attendees || 0} attendees
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+          <TabsContent value="webinars">
+            {content.webinars.length === 0 ? <Empty text="No webinars scheduled." /> : (
+              <ul className="space-y-3">
+                {content.webinars.map((w) => (
+                  <Row key={w.id} title={w.title} description={w.description}>
+                    <Badge variant="outline">{new Date(w.date_time).toLocaleString()}</Badge>
+                    <Badge variant="secondary">{w.is_paid ? `KSh ${w.price}` : 'Free'}</Badge>
+                    {!w.url && <Badge variant="outline">No registration link</Badge>}
+                  </Row>
+                ))}
+              </ul>
             )}
           </TabsContent>
 
-          <TabsContent value="materials" className="space-y-4">
-            {materials.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No materials available</p>
-            ) : (
-              materials.map((material) => (
-                <div key={material.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-semibold">{material.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{material.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline">{material.file_type}</Badge>
-                        {material.category && <Badge variant="outline">{material.category}</Badge>}
-                        {material.is_premium && <Badge>Premium</Badge>}
-                        <span className="text-sm text-muted-foreground">
-                          {material.download_count || 0} downloads
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+          <TabsContent value="materials">
+            {content.materials.length === 0 ? <Empty text="No downloads published." /> : (
+              <ul className="space-y-3">
+                {content.materials.map((m) => (
+                  <Row key={m.id} title={m.title} description={m.description}>
+                    <Badge variant="outline">{m.file_type}</Badge>
+                    {m.category && <Badge variant="outline">{m.category}</Badge>}
+                  </Row>
+                ))}
+              </ul>
             )}
           </TabsContent>
         </Tabs>

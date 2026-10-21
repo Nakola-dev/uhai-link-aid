@@ -1,256 +1,149 @@
-import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, Loader2, RefreshCw, WifiOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Heart, 
-  Phone, 
-  User, 
-  Droplet, 
-  AlertTriangle, 
-  Pill, 
-  Activity, 
-  Loader2,
-  AlertCircle 
-} from 'lucide-react';
-import Layout from '@/components/Layout';
-import type { Profile } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import ResponderLayout from '@/components/responder/ResponderLayout';
+import ResponderProfile from '@/components/responder/ResponderProfile';
+import type { ResponderProfileData } from '@/lib/responder';
+import { EMERGENCY_NUMBERS, telHref } from '@/lib/emergency-numbers';
+
+type ScanFailure = 'invalid' | 'deactivated' | 'rate-limited' | 'not-found' | 'offline' | 'unavailable';
+
+class ScanError extends Error {
+  constructor(public readonly kind: ScanFailure) {
+    super(kind);
+  }
+}
+
+interface ScanResult {
+  success: boolean;
+  error?: string;
+  profile?: ResponderProfileData;
+}
+
+function classify(message: string | undefined): ScanFailure {
+  const text = (message ?? '').toLowerCase();
+  if (text.includes('rate limit')) return 'rate-limited';
+  if (text.includes('deactivated')) return 'deactivated';
+  if (text.includes('profile not found')) return 'not-found';
+  if (text.includes('invalid') || text.includes('expired')) return 'invalid';
+  return 'unavailable';
+}
+
+async function scanProfile(token: string): Promise<ResponderProfileData> {
+  // Server-side function validates the token, rate-limits, logs the scan and
+  // returns only the emergency subset of the profile.
+  const { data, error } = await supabase.rpc('check_and_log_qr_scan', {
+    _access_token: token,
+    _user_agent: navigator.userAgent,
+  });
+  if (error) throw new ScanError(navigator.onLine ? 'unavailable' : 'offline');
+  const result = data as unknown as ScanResult;
+  if (!result?.success || !result.profile) throw new ScanError(classify(result?.error));
+  return result.profile;
+}
+
+const FAILURE_COPY: Record<ScanFailure, { title: string; body: string; retry: boolean }> = {
+  invalid: {
+    title: 'This QR code is not recognised',
+    body: 'The code may be damaged, mistyped or replaced by a newer one. Treat the person using standard emergency procedures.',
+    retry: false,
+  },
+  deactivated: {
+    title: 'This QR code has been replaced',
+    body: 'The owner has issued a new code, so this one no longer shows medical information.',
+    retry: false,
+  },
+  'not-found': {
+    title: 'No medical profile found',
+    body: 'This code is valid but has no medical information attached.',
+    retry: false,
+  },
+  'rate-limited': {
+    title: 'Too many scans from this network',
+    body: 'For the owner\'s privacy, scans are limited. Wait about a minute, then try again.',
+    retry: true,
+  },
+  offline: {
+    title: 'No internet connection',
+    body: 'Medical information can only be loaded online. Reconnect, then try again.',
+    retry: true,
+  },
+  unavailable: {
+    title: 'Medical information is temporarily unavailable',
+    body: 'UhaiLink could not be reached. Try again in a moment.',
+    retry: true,
+  },
+};
 
 const PublicProfileView = () => {
   const { token } = useParams<{ token: string }>();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const scan = useQuery({
+    queryKey: ['responder-scan', token],
+    queryFn: () => scanProfile(token as string),
+    enabled: !!token,
+    retry: false,
+    staleTime: Infinity,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    fetchProfile();
-  }, [token]);
-
-  const fetchProfile = async () => {
-    try {
-      if (!token) {
-        setError('Invalid access token');
-        return;
-      }
-
-      // Server-side rate-limited QR scan: validates token, checks rate limit,
-      // logs scan, and returns profile — all atomically in PostgreSQL (F-013)
-      const { data, error: rpcError } = await supabase.rpc('check_and_log_qr_scan', {
-        _access_token: token,
-        _ip_address: 'unknown', // Server determines real IP in production via Edge Function
-        _user_agent: navigator.userAgent,
-      });
-
-      if (rpcError) throw rpcError;
-
-      const result = data as { success: boolean; error?: string; profile?: Profile };
-
-      if (!result.success) {
-        setError(result.error || 'Failed to load profile information');
-        return;
-      }
-
-      setProfile(result.profile as Profile);
-    } catch (error: unknown) {
-      setError('Failed to load profile information');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (scan.isLoading) {
     return (
-      <Layout showFooter={false}>
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-muted-foreground">Loading medical information...</p>
-          </div>
+      <ResponderLayout>
+        {/* Full-height so the footer starts below the fold and doesn't jump when the profile arrives. */}
+        <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-3 text-center" role="status">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+          <p className="text-muted-foreground">Loading emergency medical information…</p>
         </div>
-      </Layout>
+      </ResponderLayout>
     );
   }
 
-  if (error || !profile) {
+  if (scan.data) {
     return (
-      <Layout showFooter={false}>
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-destructive">
-            <CardHeader>
-              <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle className="text-center">Access Error</CardTitle>
-              <CardDescription className="text-center">
-                {error || 'Unable to access medical information'}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </Layout>
+      <ResponderLayout>
+        <ResponderProfile profile={scan.data} />
+      </ResponderLayout>
     );
   }
+
+  const kind: ScanFailure = !token ? 'invalid' : scan.error instanceof ScanError ? scan.error.kind : 'unavailable';
+  const copy = FAILURE_COPY[kind];
+  const Icon = kind === 'offline' ? WifiOff : AlertCircle;
 
   return (
-    <Layout showFooter={false}>
-      <div className="py-8 md:py-12 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-4xl">
-          {/* Emergency Banner */}
-          <Alert className="mb-6 border-accent bg-accent/10">
-            <Heart className="h-5 w-5 text-accent" />
-            <AlertDescription className="ml-2">
-              <strong>Emergency Medical Information</strong> - This profile is intended for emergency use only
-            </AlertDescription>
-          </Alert>
-
-          {/* Patient Information */}
-          <Card className="mb-6 shadow-lg">
-            <CardHeader className="bg-primary/5">
-              <div className="flex items-center space-x-3">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">{profile?.full_name || 'Unknown'}</CardTitle>
-                  <CardDescription>Patient Medical Profile</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3 p-3 bg-muted rounded-lg">
-                  <Phone className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{profile?.phone || 'Not provided'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 p-3 bg-muted rounded-lg">
-                  <Droplet className="h-5 w-5 text-accent" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Blood Type</p>
-                    <p className="font-medium">{profile?.blood_type || 'Unknown'}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Allergies */}
-            <Card className={(profile?.allergies?.length ?? 0) > 0 ? 'border-accent' : ''}>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-accent" />
-                  <CardTitle>Allergies</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(profile?.allergies?.length ?? 0) > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profile?.allergies?.map((allergy, index) => (
-                      <Badge key={index} variant="destructive">
-                        {allergy}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No known allergies</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Current Medications */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Pill className="h-5 w-5 text-primary" />
-                  <CardTitle>Current Medications</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(profile?.medications?.length ?? 0) > 0 ? (
-                  <ul className="space-y-2">
-                    {profile?.medications?.map((medication, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>{medication}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted-foreground">No current medications</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Chronic Conditions */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  <CardTitle>Chronic Conditions</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {(profile?.chronic_conditions?.length ?? 0) > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profile?.chronic_conditions?.map((condition, index) => (
-                      <Badge key={index} variant="secondary">
-                        {condition}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No chronic conditions reported</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Emergency Contact */}
-            <Card className="border-primary">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Phone className="h-5 w-5 text-primary" />
-                  <CardTitle>Emergency Contact</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {profile?.emergency_contact_name ? (
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium text-lg">{profile?.emergency_contact_name || ''}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Phone</p>
-                      <p className="font-medium text-lg">{profile?.emergency_contact_phone || ''}</p>
-                    </div>
-                    {profile?.emergency_contact_relationship && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Relationship</p>
-                        <p className="font-medium">{profile?.emergency_contact_relationship || ''}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No emergency contact provided</p>
-                )}
-              </CardContent>
-            </Card>
+    <ResponderLayout>
+      <div className="space-y-6" role="alert">
+        <div className="space-y-3">
+          <Icon className="h-10 w-10 text-destructive" aria-hidden="true" />
+          <h1 className="text-2xl font-bold tracking-tight">{copy.title}</h1>
+          <p className="text-muted-foreground">{copy.body}</p>
+          {copy.retry && (
+            <Button onClick={() => scan.refetch()} disabled={scan.isFetching} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              Try again
+            </Button>
+          )}
+        </div>
+        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4">
+          <p className="mb-3 font-semibold">If this is an emergency, call now</p>
+          <div className="grid grid-cols-3 gap-2">
+            {EMERGENCY_NUMBERS.map((line) => (
+              <a
+                key={line.number}
+                href={telHref(line.number)}
+                className="flex min-h-14 flex-col items-center justify-center rounded-lg border bg-card text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="text-xl font-bold tabular-nums text-destructive">{line.number}</span>
+                <span className="text-xs text-muted-foreground">{line.label}</span>
+              </a>
+            ))}
           </div>
-
-          {/* Last Updated */}
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            Last updated: {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Unknown'}
-          </p>
         </div>
       </div>
-    </Layout>
+    </ResponderLayout>
   );
 };
 

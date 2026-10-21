@@ -2,176 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
+/*
+ * UhaiLink design tokens. All colours are HSL channels consumed by tailwind.config.ts.
+ * Every text/fill pair below was contrast-checked (WCAG AA, 4.5:1 text, 3:1 controls)
+ * in both themes — see docs/UI_UX_TRANSFORMATION_REPORT.md.
+ *
+ * Colour roles (follow shadcn semantics):
+ *   primary      action blue — buttons, links, focus
+ *   destructive  red — reserved for SOS, critical allergies, destructive confirmation
+ *   secondary    quiet neutral surface (secondary buttons, badges)
+ *   accent       subtle blue-tinted surface for hover/selected states (never red)
+ *   teal         "ready / healthy" brand accent
+ *   success / warning   status, always paired with an icon and text
+ */
 @layer base {
   :root {
-    /* Medical blue theme */
-    --background: 210 40% 98%;
+    --background: 216 45% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary - Medical Blue */
-    --primary: 217 91% 60%;
+    --primary: 219 76% 48%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 50%;
+    --primary-hover: 219 76% 42%;
 
-    /* Secondary - Teal for trust */
-    --secondary: 174 62% 47%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 213 36% 95%;
+    --secondary-foreground: 222 47% 11%;
 
-    /* Accent - Emergency Red */
-    --accent: 0 84% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 84% 95%;
+    --accent-foreground: 218 76% 35%;
 
-    /* Muted */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 213 36% 95%;
+    --muted-foreground: 218 15% 40%;
 
-    /* Success - Medical Green */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    /* Destructive */
-    --destructive: 0 84% 60%;
+    --destructive: 2 73% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border & Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --success: 142 72% 29%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 33 92% 33%;
+    --warning-foreground: 0 0% 100%;
+
+    --teal: 174 78% 25%;
+    --teal-foreground: 0 0% 100%;
+
+    /* Decorative separators vs. form-control outlines (controls need 3:1). */
+    --border: 214 30% 89%;
+    --input: 217 13% 55%;
+    --ring: 219 76% 48%;
 
     --radius: 0.75rem;
 
-    /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%), hsl(174 62% 47%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 98%));
-    
-    /* Shadows */
-    --shadow-card: 0 4px 6px -1px hsl(217 91% 60% / 0.1), 0 2px 4px -1px hsl(217 91% 60% / 0.06);
-    --shadow-lg: 0 20px 25px -5px hsl(217 91% 60% / 0.1), 0 10px 10px -5px hsl(217 91% 60% / 0.04);
+    /* Elevation: soft, cool-tinted shadows. */
+    --shadow-color: 222 47% 11%;
+    --elevation-1: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 1px 3px hsl(var(--shadow-color) / 0.06);
+    --elevation-2: 0 2px 4px hsl(var(--shadow-color) / 0.05), 0 6px 16px -4px hsl(var(--shadow-color) / 0.1);
+    --elevation-3: 0 4px 8px hsl(var(--shadow-color) / 0.05), 0 18px 40px -12px hsl(var(--shadow-color) / 0.18);
 
-    /* Transitions */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Smooth page transitions */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slide-in-left {
-    from {
-      opacity: 0;
-      transform: translateX(-30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes slide-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes heartbeat {
-    0%, 100% {
-      transform: scale(1);
-    }
-    10%, 30% {
-      transform: scale(1.1);
-    }
-    20%, 40% {
-      transform: scale(1);
-    }
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.6s ease-out;
-  }
-
-  .animate-slide-in-left {
-    animation: slide-in-left 0.8s ease-out;
-  }
-
-  .animate-slide-in-right {
-    animation: slide-in-right 0.8s ease-out;
-  }
-
-  .animate-heartbeat {
-    animation: heartbeat 2s ease-in-out infinite;
-  }
-
-  .delay-300 {
-    animation-delay: 300ms;
-  }
-
-  .delay-500 {
-    animation-delay: 500ms;
-  }
-
-  .delay-700 {
-    animation-delay: 700ms;
-  }
-
-  .delay-1000 {
-    animation-delay: 1000ms;
+    /* Motion */
+    --duration-fast: 120ms;
+    --duration-base: 200ms;
+    --duration-slow: 320ms;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 220 49% 8%;
+    --foreground: 217 39% 94%;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 43% 12%;
+    --card-foreground: 217 39% 94%;
+    --popover: 220 43% 12%;
+    --popover-foreground: 217 39% 94%;
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
+    /* Dark mode uses lighter fills with dark text so one token serves fills and text. */
+    --primary: 218 100% 72%;
+    --primary-foreground: 220 49% 8%;
+    --primary-hover: 218 100% 80%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 70%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 217 39% 94%;
 
-    --secondary: 174 62% 47%;
-    --secondary-foreground: 0 0% 100%;
+    --accent: 219 45% 20%;
+    --accent-foreground: 220 100% 87%;
 
-    --accent: 0 84% 60%;
-    --accent-foreground: 0 0% 100%;
+    --muted: 220 37% 16%;
+    --muted-foreground: 217 19% 67%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --destructive: 3 85% 65%;
+    --destructive-foreground: 220 49% 8%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 142 69% 58%;
+    --success-foreground: 220 49% 8%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 220 49% 8%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --teal: 171 56% 51%;
+    --teal-foreground: 220 49% 8%;
+
+    --border: 220 32% 22%;
+    --input: 215 16% 47%;
+    --ring: 218 100% 72%;
+
+    --shadow-color: 220 60% 2%;
   }
 }
 
@@ -180,7 +119,123 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* Keep focused fields and anchor targets clear of the sticky header (WCAG 2.4.11). */
+    scroll-padding-top: 5rem;
+  }
+
+  @media (max-width: 1023px) {
+    /* ...and clear of the fixed mobile bottom navigation. */
+    html {
+      scroll-padding-bottom: 9rem;
+    }
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings: "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2 {
+    @apply font-display;
+  }
+
+  /* Fallback focus indicator for anything without its own focus-visible styles. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer utilities {
+  /* Scroll reveal: content is hidden only after JS marks the page ready, so it
+     stays visible if scripts fail; reduced-motion users never see the transition. */
+  .reveal-ready .reveal:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .reveal {
+    transition:
+      opacity var(--duration-slow) var(--ease-standard),
+      transform var(--duration-slow) var(--ease-standard);
+  }
+
+  /* Legacy entrance animations kept for pages not yet redesigned. */
+  .animate-fade-in {
+    animation: fade-in 0.5s var(--ease-standard) both;
+  }
+
+  .animate-slide-in-left,
+  .animate-slide-in-right {
+    animation: fade-in 0.5s var(--ease-standard) both;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal-ready .reveal:not(.is-visible) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Printing: pages mark the printable region with .print-area and chrome with .no-print. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  body:has(.print-area) * {
+    visibility: hidden;
+  }
+
+  body:has(.print-area) .print-area,
+  body:has(.print-area) .print-area * {
+    visibility: visible;
+  }
+
+  body:has(.print-area) .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    box-shadow: none;
+    border: none;
   }
 }

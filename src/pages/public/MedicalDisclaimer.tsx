@@ -1,5 +1,5 @@
 import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { AlertTriangle, Heart, Phone } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
@@ -13,7 +13,7 @@ const MedicalDisclaimer = () => {
             <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
               <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
-            <CardTitle className="text-3xl">Medical &amp; Emergency Disclaimer</CardTitle>
+            <h1 className="font-display text-3xl font-bold tracking-tight">Medical &amp; Emergency Disclaimer</h1>
             <p className="text-muted-foreground text-sm">
               Last updated: February 12, 2026 &bull; Version 1.0.0
             </p>
@@ -39,9 +39,9 @@ const MedicalDisclaimer = () => {
 
             <section>
               <h2 className="text-xl font-semibold mt-6 mb-3">2. AI First Aid Assistant</h2>
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4 my-4">
-                <p className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">AI Guidance Limitations</p>
-                <ul className="list-disc pl-6 space-y-2 text-yellow-900 dark:text-yellow-100">
+              <div className="bg-warning/10 border border-warning/40 rounded-lg p-4 my-4">
+                <p className="font-semibold text-foreground mb-2">AI Guidance Limitations</p>
+                <ul className="list-disc pl-6 space-y-2 text-foreground">
                   <li>
                     The AI first aid assistant (Uhai Assist) provides <strong>general first aid guidance only</strong>.
                   </li>

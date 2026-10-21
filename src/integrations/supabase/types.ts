@@ -921,6 +921,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_log_qr_scan: {
+        Args: {
+          _access_token: string
+          _ip_address?: string
+          _user_agent?: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

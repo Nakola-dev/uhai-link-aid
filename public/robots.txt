@@ -1,14 +1,8 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Crawlers obey only the most specific matching group, so every rule lives in this single group.
+# Emergency medical profiles, accounts and admin pages must never be indexed.
 User-agent: *
 Allow: /
+Disallow: /profile/
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /onboarding

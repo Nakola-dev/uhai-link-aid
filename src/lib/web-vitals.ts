@@ -3,20 +3,25 @@
  *
  * Reports key performance metrics:
  * - CLS (Cumulative Layout Shift)
- * - FID (First Input Delay) / INP (Interaction to Next Paint)
+ * - INP (Interaction to Next Paint; replaced FID, which web-vitals v4+ no longer reports)
  * - LCP (Largest Contentful Paint)
  * - FCP (First Contentful Paint)
  * - TTFB (Time to First Byte)
  *
- * Metrics are logged to console in development and can be sent
- * to an analytics endpoint in production.
+ * Metrics are logged to console in development. In production they are sent
+ * only when VITE_VITALS_ENDPOINT is configured; otherwise nothing leaves the page.
  */
 
 import type { Metric } from "web-vitals";
 
 type MetricReporter = (metric: Metric) => void;
 
-const VITALS_ENDPOINT = "/api/vitals"; // placeholder for production endpoint
+const VITALS_ENDPOINT: string | undefined = import.meta.env.VITE_VITALS_ENDPOINT || undefined;
+
+/** Strips emergency access tokens from paths before they are reported anywhere. */
+export function redactPath(pathname: string): string {
+  return pathname.replace(/^\/profile\/[^/]+/, "/profile/:token");
+}
 
 /**
  * Default reporter that logs to console in development
@@ -39,8 +44,8 @@ const defaultReporter: MetricReporter = (metric) => {
     );
   }
 
-  // In production, send to analytics endpoint
-  if (import.meta.env.PROD) {
+  // In production, send to the analytics endpoint if one is configured
+  if (import.meta.env.PROD && VITALS_ENDPOINT) {
     // Use sendBeacon for reliable delivery even during page unload
     const body = JSON.stringify({
       name,
@@ -48,9 +53,8 @@ const defaultReporter: MetricReporter = (metric) => {
       rating,
       id,
       delta,
-      url: window.location.pathname,
+      url: redactPath(window.location.pathname),
       timestamp: Date.now(),
-      userAgent: navigator.userAgent,
       connection: getConnectionInfo(),
     });
 
@@ -101,12 +105,11 @@ export async function initWebVitals(
   reporter: MetricReporter = defaultReporter
 ): Promise<void> {
   try {
-    const { onCLS, onFID, onLCP, onFCP, onTTFB, onINP } = await import(
+    const { onCLS, onLCP, onFCP, onTTFB, onINP } = await import(
       "web-vitals"
     );
 
     onCLS(reporter);
-    onFID(reporter);
     onLCP(reporter);
     onFCP(reporter);
     onTTFB(reporter);

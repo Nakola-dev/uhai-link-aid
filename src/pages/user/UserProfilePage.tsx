@@ -1,575 +1,334 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { Heart, Loader2, Phone as PhoneIcon, Plus, QrCode, Trash2, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import {
+  EmergencyContact,
+  emergencyContactsQueryKey,
+  saveEmergencyContacts,
+  useEmergencyContacts,
+} from '@/hooks/use-emergency-contacts';
+import { blankToNull, formatMedicalList, parseMedicalList } from '@/lib/medical-lists';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft, Plus, Trash2, User, Heart, Phone as PhoneIcon, QrCode as QrCodeIcon, Download } from 'lucide-react';
-import { toast } from 'sonner';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardSkeleton from '@/components/DashboardSkeleton';
-import { QRCodeSVG } from 'qrcode.react';
-import { Badge } from '@/components/ui/badge';
 
-interface EmergencyContact {
-  id?: string;
-  name: string;
-  phone: string;
-  relationship: string;
-  priority: number;
-}
+const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];
+
+const emptyForm = {
+  full_name: '',
+  phone: '',
+  gender: '',
+  date_of_birth: '',
+  city: '',
+  county: '',
+  profile_photo_url: '',
+  blood_type: '',
+  allergies: '',
+  medications: '',
+  chronic_conditions: '',
+  primary_hospital: '',
+};
+
+const priorityLabel = (index: number) => (index === 0 ? 'Called first' : `Contact ${index + 1}`);
 
 const UserProfilePage = () => {
-  const [loading, setLoading] = useState(true);
+  const { user, profile, isAdmin, loading: authLoading, refreshProfile } = useAuth();
+  const queryClient = useQueryClient();
+  const contactsQuery = useEmergencyContacts(user?.id);
+  const [form, setForm] = useState(emptyForm);
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [saving, setSaving] = useState(false);
-  const [qrToken, setQrToken] = useState('');
-  const { user, profile: authProfile, isAdmin, loading: authLoading } = useAuth();
-  const [profileForm, setProfileForm] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    gender: '',
-    date_of_birth: '',
-    city: '',
-    county: '',
-    profile_photo_url: '',
-    blood_type: '',
-    allergies: [] as string[],
-    medications: [] as string[],
-    chronic_conditions: [] as string[],
-    primary_hospital: '',
-  });
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (user?.id && authProfile) {
-      setProfileForm({
-        full_name: authProfile.full_name || '',
-        email: user.email || '',
-        phone: authProfile.phone || '',
-        gender: authProfile.gender || '',
-        date_of_birth: authProfile.date_of_birth || '',
-        city: authProfile.city || '',
-        county: authProfile.county || '',
-        profile_photo_url: authProfile.profile_photo_url || '',
-        blood_type: authProfile.blood_type || '',
-        allergies: authProfile.allergies || [],
-        medications: authProfile.medications || [],
-        chronic_conditions: authProfile.chronic_conditions || [],
-        primary_hospital: authProfile.primary_hospital || '',
-      });
-      fetchAdditionalData(user.id);
-    }
-  }, [user?.id, authProfile]);
+    if (!profile) return;
+    setForm({
+      full_name: profile.full_name || '',
+      phone: profile.phone || '',
+      gender: profile.gender || '',
+      date_of_birth: profile.date_of_birth || '',
+      city: profile.city || '',
+      county: profile.county || '',
+      profile_photo_url: profile.profile_photo_url || '',
+      blood_type: profile.blood_type || '',
+      allergies: formatMedicalList(profile.allergies),
+      medications: formatMedicalList(profile.medications),
+      chronic_conditions: formatMedicalList(profile.chronic_conditions),
+      primary_hospital: profile.primary_hospital || '',
+    });
+  }, [profile]);
 
-  const fetchAdditionalData = async (userId: string) => {
-    try {
-      // Fetch emergency contacts
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('emergency_contacts')
-        .select('*')
-        .eq('user_id', userId)
-        .order('priority', { ascending: true });
+  useEffect(() => {
+    if (contactsQuery.data) setContacts(contactsQuery.data);
+  }, [contactsQuery.data]);
 
-      if (contactsError) throw contactsError;
-      setEmergencyContacts(contactsData || []);
+  const setField = (field: keyof typeof emptyForm) => (value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
 
-      // Fetch or create QR token
-      const { data: tokenData } = await supabase
-        .from('qr_access_tokens')
-        .select('access_token')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (tokenData) {
-        setQrToken(tokenData.access_token);
-      } else {
-        await generateQRToken(userId);
-      }
-    } catch (error: unknown) {
-      toast.error('Failed to load profile data');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateQRToken = async (uid: string) => {
-    try {
-      const token = `${uid}-${Date.now()}`;
-      const { error } = await supabase
-        .from('qr_access_tokens')
-        .insert({ user_id: uid, access_token: token, is_active: true });
-
-      if (error) throw error;
-      setQrToken(token);
-      toast.success('QR code generated!');
-    } catch (error: unknown) {
-      toast.error('Failed to generate QR code');
-    }
-  };
-
-  const regenerateQRCode = async () => {
-    try {
-      if (!user?.id) return;
-
-      // Deactivate old tokens
-      await supabase
-        .from('qr_access_tokens')
-        .update({ is_active: false })
-        .eq('user_id', user.id);
-
-      // Generate new token
-      await generateQRToken(user.id);
-    } catch (error) {
-      toast.error('Failed to regenerate QR code');
-    }
-  };
-
-  const downloadQRCode = () => {
-    const svg = document.querySelector('svg');
-    if (svg) {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      canvas.width = 200;
-      canvas.height = 200;
-      
-      img.onload = () => {
-        ctx?.drawImage(img, 0, 0);
-        const url = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = 'uhai-emergency-qr.png';
-        link.href = url;
-        link.click();
-      };
-      
-      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-    }
-  };
+  const updateContact = (index: number, field: 'name' | 'phone' | 'relationship', value: string) =>
+    setContacts((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id) return;
     setSaving(true);
 
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: form.full_name.trim(),
+        phone: blankToNull(form.phone),
+        gender: blankToNull(form.gender),
+        date_of_birth: blankToNull(form.date_of_birth),
+        city: blankToNull(form.city),
+        county: blankToNull(form.county),
+        profile_photo_url: blankToNull(form.profile_photo_url),
+        blood_type: blankToNull(form.blood_type),
+        allergies: parseMedicalList(form.allergies),
+        medications: parseMedicalList(form.medications),
+        chronic_conditions: parseMedicalList(form.chronic_conditions),
+        primary_hospital: blankToNull(form.primary_hospital),
+      })
+      .eq('id', user.id);
+
+    if (profileError) {
+      toast.error(`Your profile was not saved: ${profileError.message}`);
+      setSaving(false);
+      return;
+    }
+
     try {
-      if (!user?.id) return;
-
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profileForm.full_name,
-          phone: profileForm.phone,
-          gender: profileForm.gender,
-          date_of_birth: profileForm.date_of_birth,
-          city: profileForm.city,
-          county: profileForm.county,
-          profile_photo_url: profileForm.profile_photo_url,
-          blood_type: profileForm.blood_type,
-          allergies: profileForm.allergies,
-          medications: profileForm.medications,
-          chronic_conditions: profileForm.chronic_conditions,
-          primary_hospital: profileForm.primary_hospital,
-        })
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      // Delete removed contacts and update/insert existing
-      const { data: existingContacts } = await supabase
-        .from('emergency_contacts')
-        .select('id')
-        .eq('user_id', user.id);
-
-      const existingIds = existingContacts?.map(c => c.id) || [];
-      const currentIds = emergencyContacts.filter(c => c.id).map(c => c.id);
-      const toDelete = existingIds.filter(id => !currentIds.includes(id));
-
-      if (toDelete.length > 0) {
-        await supabase
-          .from('emergency_contacts')
-          .delete()
-          .in('id', toDelete);
-      }
-
-      // Upsert contacts
-      for (const contact of emergencyContacts) {
-        if (contact.id) {
-          await supabase
-            .from('emergency_contacts')
-            .update({
-              name: contact.name,
-              phone: contact.phone,
-              relationship: contact.relationship,
-              priority: contact.priority,
-            })
-            .eq('id', contact.id);
-        } else {
-          await supabase
-            .from('emergency_contacts')
-            .insert({
-              user_id: user.id,
-              name: contact.name,
-              phone: contact.phone,
-              relationship: contact.relationship,
-              priority: contact.priority,
-            });
-        }
-      }
-
-      toast.success('Profile updated successfully!');
-        navigate('/dashboard');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update profile';
-      toast.error(message);
+      await saveEmergencyContacts(user.id, contacts);
+      toast.success('Profile and emergency contacts saved');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown error';
+      toast.error(`Medical details were saved, but emergency contacts were not: ${message}`);
     } finally {
+      await Promise.all([
+        refreshProfile(),
+        queryClient.invalidateQueries({ queryKey: emergencyContactsQueryKey(user.id) }),
+      ]);
       setSaving(false);
     }
   };
 
-  const handleArrayInput = (field: 'allergies' | 'medications' | 'chronic_conditions', value: string) => {
-    const items = value.split(',').map(item => item.trim()).filter(item => item);
-    setProfileForm(prev => ({ ...prev, [field]: items }));
-  };
-
-  const addEmergencyContact = () => {
-    setEmergencyContacts([...emergencyContacts, {
-      name: '',
-      phone: '',
-      relationship: '',
-      priority: emergencyContacts.length + 1,
-    }]);
-  };
-
-  const removeEmergencyContact = (index: number) => {
-    setEmergencyContacts(emergencyContacts.filter((_, i) => i !== index));
-  };
-
-  const updateEmergencyContact = (index: number, field: keyof EmergencyContact, value: string | number) => {
-    const updated = [...emergencyContacts];
-    updated[index] = { ...updated[index], [field]: value };
-    setEmergencyContacts(updated);
-  };
-
-  const getPriorityBadge = (priority: number) => {
-    if (priority === 1) return <Badge className="bg-red-500">Primary</Badge>;
-    if (priority === 2) return <Badge className="bg-orange-500">Secondary</Badge>;
-    return <Badge className="bg-blue-500">Backup</Badge>;
-  };
-
-  if (authLoading || loading) {
+  if (authLoading || contactsQuery.isLoading) {
     return (
-      <DashboardLayout user={authProfile} isAdmin={isAdmin}>
+      <DashboardLayout user={profile} isAdmin={isAdmin}>
         <DashboardSkeleton cards={0} rows={6} />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout user={authProfile} isAdmin={isAdmin}>
+    <DashboardLayout user={profile} isAdmin={isAdmin}>
       <div className="max-w-5xl mx-auto space-y-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-
-          <form onSubmit={handleSave} className="space-y-6">
-            {/* General Information */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-primary" />
-                  <CardTitle>General Information</CardTitle>
-                </div>
-                <CardDescription>Your basic profile details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name *</Label>
-                    <Input
-                      id="full_name"
-                      value={profileForm.full_name}
-                      onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email (Read-only)</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileForm.email}
-                      disabled
-                      className="bg-muted"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      placeholder="+254..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select value={profileForm.gender} onValueChange={(value) => setProfileForm({ ...profileForm, gender: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">Date of Birth</Label>
-                    <Input
-                      id="date_of_birth"
-                      type="date"
-                      value={profileForm.date_of_birth}
-                      onChange={(e) => setProfileForm({ ...profileForm, date_of_birth: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={profileForm.city}
-                      onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
-                      placeholder="Nairobi"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="county">County</Label>
-                    <Input
-                      id="county"
-                      value={profileForm.county}
-                      onChange={(e) => setProfileForm({ ...profileForm, county: e.target.value })}
-                      placeholder="Nairobi County"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="profile_photo_url">Profile Photo URL</Label>
-                    <Input
-                      id="profile_photo_url"
-                      type="url"
-                      value={profileForm.profile_photo_url}
-                      onChange={(e) => setProfileForm({ ...profileForm, profile_photo_url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Medical Information */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Heart className="h-5 w-5 text-primary" />
-                  <CardTitle>Medical Information</CardTitle>
-                </div>
-                <CardDescription>Health details for emergency responders</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="blood_type">Blood Type</Label>
-                    <Select value={profileForm.blood_type} onValueChange={(value) => setProfileForm({ ...profileForm, blood_type: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select blood type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="primary_hospital">Primary Hospital/Clinic</Label>
-                    <Input
-                      id="primary_hospital"
-                      value={profileForm.primary_hospital}
-                      onChange={(e) => setProfileForm({ ...profileForm, primary_hospital: e.target.value })}
-                      placeholder="Kenyatta National Hospital"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="allergies">Allergies</Label>
-                  <Input
-                    id="allergies"
-                    value={profileForm.allergies.join(', ')}
-                    onChange={(e) => handleArrayInput('allergies', e.target.value)}
-                    placeholder="Comma-separated (e.g., penicillin, peanuts)"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="medications">Current Medications</Label>
-                  <Input
-                    id="medications"
-                    value={profileForm.medications.join(', ')}
-                    onChange={(e) => handleArrayInput('medications', e.target.value)}
-                    placeholder="Comma-separated (e.g., Aspirin 81mg, Metformin)"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="chronic_conditions">Chronic Conditions</Label>
-                  <Input
-                    id="chronic_conditions"
-                    value={profileForm.chronic_conditions.join(', ')}
-                    onChange={(e) => handleArrayInput('chronic_conditions', e.target.value)}
-                    placeholder="Comma-separated (e.g., Diabetes, Hypertension)"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Emergency Contacts */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <PhoneIcon className="h-5 w-5 text-primary" />
-                    <CardTitle>Emergency Contacts</CardTitle>
-                  </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addEmergencyContact}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Contact
-                  </Button>
-                </div>
-                <CardDescription>Add up to 3 emergency contacts with priority levels</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {emergencyContacts.map((contact, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      {getPriorityBadge(contact.priority)}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeEmergencyContact(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Name</Label>
-                        <Input
-                          value={contact.name}
-                          onChange={(e) => updateEmergencyContact(index, 'name', e.target.value)}
-                          placeholder="John Doe"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Phone</Label>
-                        <Input
-                          value={contact.phone}
-                          onChange={(e) => updateEmergencyContact(index, 'phone', e.target.value)}
-                          placeholder="+254..."
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Relationship</Label>
-                        <Input
-                          value={contact.relationship}
-                          onChange={(e) => updateEmergencyContact(index, 'relationship', e.target.value)}
-                          placeholder="Spouse, Parent, etc."
-                        />
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-                {emergencyContacts.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No emergency contacts added yet. Click "Add Contact" to get started.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* QR Code Management */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <QrCodeIcon className="h-5 w-5 text-primary" />
-                  <CardTitle>QR Code Management</CardTitle>
-                </div>
-                <CardDescription>Your emergency profile QR code</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {qrToken && (
-                  <div className="flex flex-col items-center space-y-4">
-                    <div className="bg-white p-4 rounded-lg">
-                      <QRCodeSVG value={`${window.location.origin}/profile/${qrToken}`} size={200} />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={regenerateQRCode}>
-                        <QrCodeIcon className="h-4 w-4 mr-2" />
-                        Regenerate QR Code
-                      </Button>
-                      <Button type="button" variant="outline" onClick={downloadQRCode}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Download QR Code
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center max-w-md">
-                      Share this QR code for emergency access to your medical profile. 
-                      Regenerate if you need to revoke access to the current code.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-4">
-              <Button type="submit" disabled={saving} className="flex-1">
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Medical profile</h1>
+          <p className="text-muted-foreground">
+            First responders see this information when they scan your QR code.
+          </p>
         </div>
-      </DashboardLayout>
+
+        <form onSubmit={handleSave} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" aria-hidden="true" />
+                <CardTitle>About you</CardTitle>
+              </div>
+              <CardDescription>Helps responders identify you.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full name *</Label>
+                <Input id="full_name" autoComplete="name" required value={form.full_name}
+                  onChange={(e) => setField('full_name')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={user?.email ?? ''} disabled readOnly aria-describedby="email-hint" />
+                <p id="email-hint" className="text-xs text-muted-foreground">Your sign-in email can't be changed here.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone number</Label>
+                <Input id="phone" type="tel" autoComplete="tel" value={form.phone} placeholder="+254 7XX XXX XXX"
+                  onChange={(e) => setField('phone')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={form.gender} onValueChange={setField('gender')}>
+                  <SelectTrigger id="gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Date of birth</Label>
+                <Input id="date_of_birth" type="date" autoComplete="bday" value={form.date_of_birth}
+                  onChange={(e) => setField('date_of_birth')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City or town</Label>
+                <Input id="city" autoComplete="address-level2" value={form.city} placeholder="Nairobi"
+                  onChange={(e) => setField('city')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="county">County</Label>
+                <Input id="county" value={form.county} placeholder="Nairobi County"
+                  onChange={(e) => setField('county')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile_photo_url">Profile photo URL</Label>
+                <Input id="profile_photo_url" type="url" value={form.profile_photo_url} placeholder="https://…"
+                  onChange={(e) => setField('profile_photo_url')(e.target.value)} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-primary" aria-hidden="true" />
+                <CardTitle>Medical information</CardTitle>
+              </div>
+              <CardDescription>Separate multiple items with commas.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="blood_type">Blood type</Label>
+                  <Select value={form.blood_type} onValueChange={setField('blood_type')}>
+                    <SelectTrigger id="blood_type"><SelectValue placeholder="Select blood type" /></SelectTrigger>
+                    <SelectContent>
+                      {BLOOD_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="primary_hospital">Primary hospital or clinic</Label>
+                  <Input id="primary_hospital" value={form.primary_hospital} placeholder="Kenyatta National Hospital"
+                    onChange={(e) => setField('primary_hospital')(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="allergies">Allergies</Label>
+                <Input id="allergies" value={form.allergies} placeholder="e.g. Penicillin, Peanuts"
+                  onChange={(e) => setField('allergies')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="medications">Current medications</Label>
+                <Input id="medications" value={form.medications} placeholder="e.g. Metformin 500mg, Salbutamol inhaler"
+                  onChange={(e) => setField('medications')(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chronic_conditions">Chronic conditions</Label>
+                <Input id="chronic_conditions" value={form.chronic_conditions} placeholder="e.g. Diabetes, Asthma"
+                  onChange={(e) => setField('chronic_conditions')(e.target.value)} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <PhoneIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <CardTitle>Emergency contacts</CardTitle>
+                </div>
+                <Button type="button" variant="outline" size="sm"
+                  onClick={() => setContacts((prev) => [...prev, { name: '', phone: '', relationship: '', priority: prev.length + 1 }])}>
+                  <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Add contact
+                </Button>
+              </div>
+              <CardDescription>
+                Shown to responders and alerted by SMS when you send an SOS, in this order.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contactsQuery.isError && (
+                <p className="text-sm text-destructive" role="alert">
+                  Your saved contacts couldn't be loaded. Reload the page before editing them.
+                </p>
+              )}
+              {contacts.map((contact, index) => (
+                <fieldset key={contact.id ?? `new-${index}`} className="rounded-lg border p-4 space-y-3">
+                  <legend className="sr-only">Emergency contact {index + 1}</legend>
+                  <div className="flex items-center justify-between">
+                    <Badge variant={index === 0 ? 'default' : 'secondary'}>{priorityLabel(index)}</Badge>
+                    <Button type="button" variant="ghost" size="icon"
+                      aria-label={`Remove ${contact.name || `contact ${index + 1}`}`}
+                      onClick={() => setContacts((prev) => prev.filter((_, i) => i !== index))}>
+                      <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`contact-name-${index}`}>Name *</Label>
+                      <Input id={`contact-name-${index}`} required value={contact.name}
+                        onChange={(e) => updateContact(index, 'name', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`contact-phone-${index}`}>Phone *</Label>
+                      <Input id={`contact-phone-${index}`} type="tel" required value={contact.phone} placeholder="+254 7XX XXX XXX"
+                        onChange={(e) => updateContact(index, 'phone', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`contact-relationship-${index}`}>Relationship</Label>
+                      <Input id={`contact-relationship-${index}`} value={contact.relationship ?? ''} placeholder="Spouse, parent…"
+                        onChange={(e) => updateContact(index, 'relationship', e.target.value)} />
+                    </div>
+                  </div>
+                </fieldset>
+              ))}
+              {contacts.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  No emergency contacts yet. Without one, an SOS can't alert anyone by SMS.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6">
+              <div className="flex items-center gap-3">
+                <QrCode className="h-5 w-5 text-primary" aria-hidden="true" />
+                <p className="text-sm">Your QR code, downloads and printing are on the Medical ID page.</p>
+              </div>
+              <Button asChild variant="outline">
+                <Link to="/dashboard/qr">Open my Medical ID</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Sticky save bar; on mobile it sits above the fixed bottom navigation instead of behind it. */}
+          <div
+            data-sticky-overlay
+            className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] z-30 -mx-4 flex gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:mx-0 lg:rounded-xl lg:border lg:px-4"
+          >
+            <Button type="submit" disabled={saving || contactsQuery.isError} className="flex-1 sm:flex-none sm:min-w-48">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </DashboardLayout>
   );
 };
 

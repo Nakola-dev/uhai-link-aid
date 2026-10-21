@@ -1,150 +1,89 @@
-import { Heart, Twitter, Facebook, Instagram, Linkedin, Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Mail, Phone } from 'lucide-react';
+import { EMERGENCY_NUMBERS, telHref } from '@/lib/emergency-numbers';
+import BrandLogo from '@/components/BrandLogo';
 
-const Footer = () => {
-  const socialLinks = [
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
-  ];
+const SUPPORT_EMAIL = 'support@uhailink.com';
 
-  return (
-    <footer className="relative border-t border-border/40 bg-gradient-to-br from-primary/5 via-background to-secondary/5 backdrop-blur" role="contentinfo">
-      <div className="container mx-auto px-4 py-12">
-        {/* Mini CTA */}
-        <div className="max-w-3xl mx-auto text-center mb-12 p-8 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
-          <h3 className="text-2xl font-bold mb-3">Become a Lifesaver — Join Our Community</h3>
-          <p className="text-muted-foreground mb-4">
-            Help us build a safer world, one QR code at a time
+const COLUMNS = [
+  {
+    title: 'Product',
+    links: [
+      { to: '/demo/responder', label: 'What responders see' },
+      { to: '/services', label: 'Services' },
+      { to: '/learn', label: 'Learn first aid' },
+      { to: '/auth?tab=signup', label: 'Create my medical ID' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { to: '/about', label: 'About' },
+      { to: '/contact', label: 'Contact' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { to: '/privacy-policy', label: 'Privacy Policy' },
+      { to: '/terms-of-service', label: 'Terms of Service' },
+      { to: '/medical-disclaimer', label: 'Medical disclaimer' },
+    ],
+  },
+];
+
+const Footer = () => (
+  <footer className="border-t bg-card" role="contentinfo">
+    <div className="container py-12">
+      <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)_1.2fr]">
+        <div className="space-y-3">
+          <BrandLogo />
+          <p className="max-w-xs text-sm text-muted-foreground">
+            Your emergency medical information, ready for whoever helps you first. Built in Kenya.
           </p>
-          <Button 
-            size="lg" 
-            className="rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group"
-          >
-            <Link to="/auth" className="flex items-center">
-              Join Now
-              <Heart className="ml-2 h-4 w-4 group-hover:scale-110 transition-transform" fill="currentColor" />
-            </Link>
-          </Button>
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <Mail className="h-4 w-4" aria-hidden="true" />
+            {SUPPORT_EMAIL}
+          </a>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 group cursor-pointer">
-              <Heart className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" fill="currentColor" />
-              <span className="text-xl font-bold">UhaiLink</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Emergency medical information when it matters most. Trusted by thousands worldwide.
-            </p>
-            <div className="flex gap-2">
-              {socialLinks.map((social, idx) => (
-                <a
-                  key={idx}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-white transition-all hover:scale-110 hover:-translate-y-1 group"
-                >
-                  <social.icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                </a>
+        {COLUMNS.map((column) => (
+          <nav key={column.title} aria-label={column.title}>
+            <h2 className="mb-3 font-sans text-sm font-semibold">{column.title}</h2>
+            <ul className="space-y-2.5 text-sm">
+              {column.links.map((link) => (
+                <li key={link.to}>
+                  <Link to={link.to} className="text-muted-foreground hover:text-foreground">
+                    {link.label}
+                  </Link>
+                </li>
               ))}
-            </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-semibold mb-4 text-lg">Quick Links</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>
-                <Link to="/" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Services
-                </Link>
-              </li>
-              <li>
-                <Link to="/learn" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Learn
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Contact
-                </Link>
-              </li>
             </ul>
-          </div>
+          </nav>
+        ))}
 
-          {/* Support */}
-          <div>
-            <h3 className="font-semibold mb-4 text-lg">Support</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>
-                <Link to="/contact" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Help Center
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy-policy" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms-of-service" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/medical-disclaimer" className="hover:text-primary transition-colors hover:translate-x-1 inline-block">
-                  Medical Disclaimer
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact & Emergency */}
-          <div>
-            <h3 className="font-semibold mb-4 text-lg">Emergency Contacts</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-destructive" />
-                Kenya Red Cross: 1199
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-destructive" />
-                Ambulance: 999
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-destructive" />
-                Police: 999
-              </li>
-              <li className="flex items-center gap-2 mt-4">
-                <Mail className="h-4 w-4 text-primary" />
-                <a href="mailto:support@uhailink.com" className="hover:text-primary transition-colors">
-                  support@uhailink.com
+        <div>
+          <h2 className="mb-3 font-sans text-sm font-semibold">Emergency lines (Kenya)</h2>
+          <ul className="space-y-2.5 text-sm">
+            {EMERGENCY_NUMBERS.map((line) => (
+              <li key={line.number}>
+                <a href={telHref(line.number)} className="inline-flex items-center gap-2 hover:underline underline-offset-4">
+                  <Phone className="h-4 w-4 text-destructive" aria-hidden="true" />
+                  <span className="font-semibold tabular-nums">{line.number}</span>
+                  <span className="text-muted-foreground">{line.label === 'Emergency' ? line.description : line.label}</span>
                 </a>
               </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} UhaiLink. All rights reserved. Made with <Heart className="inline h-4 w-4 text-destructive" fill="currentColor" /> for saving lives.</p>
+            ))}
+          </ul>
         </div>
       </div>
-    </footer>
-  );
-};
+
+      <div className="mt-10 flex flex-col gap-2 border-t pt-6 text-xs text-muted-foreground sm:flex-row sm:justify-between">
+        <p>© {new Date().getFullYear()} UhaiLink. All rights reserved.</p>
+        <p>UhaiLink is not an emergency service. In an emergency, call 999 or 112.</p>
+      </div>
+    </div>
+  </footer>
+);
 
 export default Footer;

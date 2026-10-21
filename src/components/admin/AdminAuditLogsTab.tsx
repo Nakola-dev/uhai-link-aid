@@ -34,18 +34,18 @@ interface AdminAuditLogsTabProps {
 const PAGE_SIZE = 20;
 
 const actionColors: Record<AdminActionType, string> = {
-  create: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  update: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  delete: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  view: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
-  export: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  create: 'bg-success/15 text-success',
+  update: 'bg-primary/10 text-primary',
+  delete: 'bg-destructive/10 text-destructive',
+  view: 'bg-muted text-muted-foreground',
+  export: 'bg-accent text-accent-foreground',
 };
 
 export const AdminAuditLogsTab = ({ onUpdate }: AdminAuditLogsTabProps) => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [actionFilter, setActionFilter] = useState<'all' | Database['public']['Enums']['admin_action_type']>('all');
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -162,8 +162,8 @@ export const AdminAuditLogsTab = ({ onUpdate }: AdminAuditLogsTabProps) => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Shield className="h-5 w-5 text-green-500" />
+              <div className="p-2 bg-success/10 rounded-lg">
+                <Shield className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{entityTypes.length}</p>
@@ -175,8 +175,8 @@ export const AdminAuditLogsTab = ({ onUpdate }: AdminAuditLogsTabProps) => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <RefreshCw className="h-5 w-5 text-blue-500" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <RefreshCw className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{totalPages}</p>
@@ -220,7 +220,7 @@ export const AdminAuditLogsTab = ({ onUpdate }: AdminAuditLogsTabProps) => {
                 className="pl-10"
               />
             </div>
-            <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(0); }}>
+            <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v as typeof actionFilter); setPage(0); }}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Action" />
               </SelectTrigger>

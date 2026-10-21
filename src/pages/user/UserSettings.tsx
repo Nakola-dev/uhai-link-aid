@@ -1,52 +1,55 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
+import { Loader2, Lock, Moon, Save, Trash2 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { describeAuthError } from '@/lib/auth-errors';
+import { blankToNull } from '@/lib/medical-lists';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Save, Lock, Trash2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useTheme } from 'next-themes';
+import FormField from '@/components/FormField';
+import PasswordInput from '@/components/PasswordInput';
+import DashboardLayout from '@/components/DashboardLayout';
 
-const passwordSchema = z.object({
-  newPassword: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-    .regex(/[0-9]/, 'Must contain at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Must contain at least one special character'),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+const passwordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, 'Use at least 8 characters')
+      .regex(/[A-Z]/, 'Add at least one uppercase letter')
+      .regex(/[0-9]/, 'Add at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Add at least one symbol, such as ! or #'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 const UserSettings = () => {
-  const [loading, setLoading] = useState(false);
   const { user, profile, isAdmin, refreshProfile } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    city: '',
-    county: '',
-  });
+  const { resolvedTheme, setTheme } = useTheme();
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [formData, setFormData] = useState({ full_name: '', phone: '', city: '', county: '' });
   const passwordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { newPassword: '', confirmPassword: '' },
   });
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletionReason, setDeletionReason] = useState('');
-  const { toast } = useToast();
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -61,333 +64,189 @@ const UserSettings = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (!user?.id) return;
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(formData)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
-
-      await refreshProfile();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (!user?.id) return;
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: formData.full_name.trim(),
+        phone: blankToNull(formData.phone),
+        city: blankToNull(formData.city),
+        county: blankToNull(formData.county),
+      })
+      .eq('id', user.id);
+    setSavingProfile(false);
+    if (error) {
+      toast.error(`Your details weren't saved: ${error.message}`);
+      return;
     }
+    toast.success('Your details have been saved');
+    refreshProfile();
   };
 
   const handleUpdatePassword = async (values: PasswordValues) => {
-    setLoading(true);
-
+    setSavingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: values.newPassword
-      });
-
+      const { error } = await supabase.auth.updateUser({ password: values.newPassword });
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Password updated successfully",
-      });
-
+      toast.success('Your password has been changed');
       passwordForm.reset();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error(describeAuthError(error, "Your password wasn't changed."));
     } finally {
-      setLoading(false);
+      setSavingPassword(false);
     }
-  };
-
-  const toggleDarkMode = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    toast({
-      title: "Theme Updated",
-      description: `Switched to ${newTheme} mode`,
-    });
   };
 
   const handleRequestDeletion = async () => {
-    if (deleteConfirmText !== 'DELETE') {
-      toast({
-        title: "Confirmation Required",
-        description: "Please type DELETE to confirm account deletion.",
-        variant: "destructive",
-      });
+    if (!user?.id || deleteConfirmText !== 'DELETE') return;
+    setRequestingDeletion(true);
+    const { error } = await supabase.from('account_deletion_requests').insert({
+      user_id: user.id,
+      reason: deletionReason.trim() || null,
+      status: 'pending',
+      requested_at: new Date().toISOString(),
+    });
+    setRequestingDeletion(false);
+    if (error) {
+      toast.error(`Your request wasn't submitted: ${error.message}`);
       return;
     }
-
-    setLoading(true);
-
-    try {
-      if (!user?.id) return;
-
-      const { error } = await supabase
-        .from('account_deletion_requests')
-        .insert({
-          user_id: user.id,
-          reason: deletionReason || null,
-          status: 'pending',
-          requested_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Deletion Request Submitted",
-        description: "Your account deletion request has been submitted. We will process it within 30 days as required by data protection regulations.",
-      });
-
-      setShowDeleteDialog(false);
-      setDeleteConfirmText('');
-      setDeletionReason('');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to submit deletion request';
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    toast.success('Deletion request received. It will be completed within 30 days, as data protection law requires.');
+    setDeleteOpen(false);
+    setDeleteConfirmText('');
+    setDeletionReason('');
   };
+
+  const pwErrors = passwordForm.formState.errors;
 
   return (
     <DashboardLayout user={profile} isAdmin={isAdmin}>
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+      <div className="mx-auto max-w-3xl space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
-            Manage your account settings and preferences
+            Account details, password and appearance. Medical details are in{' '}
+            <Link to="/dashboard/profile" className="font-medium text-primary underline-offset-4 hover:underline">your medical profile</Link>.
           </p>
         </div>
 
-        {/* Profile Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>
-              Update your personal details and location
-            </CardDescription>
+            <CardTitle>Your details</CardTitle>
+            <CardDescription>{user?.email}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="John Doe"
-                  />
+                  <Label htmlFor="full_name">Full name</Label>
+                  <Input id="full_name" autoComplete="name" required value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+254 712 345 678"
-                  />
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input id="phone" type="tel" autoComplete="tel" value={formData.phone} placeholder="+254 7XX XXX XXX"
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Nairobi"
-                  />
+                  <Label htmlFor="city">City or town</Label>
+                  <Input id="city" autoComplete="address-level2" value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="county">County</Label>
-                  <Input
-                    id="county"
-                    value={formData.county}
-                    onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-                    placeholder="Nairobi County"
-                  />
+                  <Input id="county" value={formData.county}
+                    onChange={(e) => setFormData({ ...formData, county: e.target.value })} />
                 </div>
               </div>
-              <Button type="submit" disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
+              <Button type="submit" disabled={savingProfile}>
+                {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-2 h-4 w-4" aria-hidden="true" />}
+                Save details
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Password Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Change Password</CardTitle>
-            <CardDescription>
-              Update your password to keep your account secure
-            </CardDescription>
+            <CardTitle>Change password</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={passwordForm.handleSubmit(handleUpdatePassword)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  placeholder="Enter new password"
-                  {...passwordForm.register('newPassword')}
-                />
-                {passwordForm.formState.errors.newPassword && (
-                  <p className="text-xs text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Minimum 8 characters with uppercase, number, and special character
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm new password"
-                  {...passwordForm.register('confirmPassword')}
-                />
-                {passwordForm.formState.errors.confirmPassword && (
-                  <p className="text-xs text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
-                )}
-              </div>
-              <Button type="submit" disabled={loading}>
-                <Lock className="h-4 w-4 mr-2" />
-                Update Password
+            <form onSubmit={passwordForm.handleSubmit(handleUpdatePassword)} className="space-y-4" noValidate>
+              <FormField label="New password" error={pwErrors.newPassword?.message}
+                hint="At least 8 characters, with an uppercase letter, a number and a symbol.">
+                <PasswordInput autoComplete="new-password" {...passwordForm.register('newPassword')} />
+              </FormField>
+              <FormField label="Confirm new password" error={pwErrors.confirmPassword?.message}>
+                <PasswordInput autoComplete="new-password" {...passwordForm.register('confirmPassword')} />
+              </FormField>
+              <Button type="submit" disabled={savingPassword}>
+                {savingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Lock className="mr-2 h-4 w-4" aria-hidden="true" />}
+                Change password
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Appearance Settings */}
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
-            <CardDescription>
-              Customize how the app looks for you
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {theme === 'dark' ? (
-                  <Moon className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <Sun className="h-5 w-5 text-muted-foreground" />
-                )}
-                <div>
-                  <p className="font-medium">Dark Mode</p>
-                  <p className="text-sm text-muted-foreground">
-                    Toggle between light and dark themes
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={theme === 'dark'}
-                onCheckedChange={toggleDarkMode}
-              />
-            </div>
+            <label className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-3">
+                <Moon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <span>
+                  <span className="block font-medium">Dark theme</span>
+                  <span className="block text-sm text-muted-foreground">Easier on the eyes at night</span>
+                </span>
+              </span>
+              <Switch checked={resolvedTheme === 'dark'} onCheckedChange={(on) => setTheme(on ? 'dark' : 'light')} />
+            </label>
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="border-destructive/50">
+        <Card className="border-destructive/40">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardTitle className="text-destructive">Delete account</CardTitle>
             <CardDescription>
-              Irreversible actions — proceed with caution
+              Ask us to delete your account, medical profile, contacts and QR code. This can't be undone once completed.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Delete Account</p>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
-              </Button>
-            </div>
+            <Button variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Request account deletion
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Delete Account Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-destructive">Delete Your Account</DialogTitle>
+            <DialogTitle>Request account deletion</DialogTitle>
             <DialogDescription>
-              This will permanently delete your account, profile, medical data, emergency contacts, 
-              and QR codes. Your data will be removed within 30 days as required by data protection 
-              regulations. This action cannot be undone.
+              We'll delete your account, medical profile, emergency contacts and QR code within 30 days. Your QR code
+              stops working once deletion is complete.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="deletion-reason">Reason for leaving (optional)</Label>
-              <Input
-                id="deletion-reason"
-                value={deletionReason}
-                onChange={(e) => setDeletionReason(e.target.value)}
-                placeholder="Help us improve — why are you leaving?"
-              />
+              <Label htmlFor="deletion-reason">Reason (optional)</Label>
+              <Input id="deletion-reason" value={deletionReason} onChange={(e) => setDeletionReason(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="delete-confirm">
-                Type <strong>DELETE</strong> to confirm
-              </Label>
-              <Input
-                id="delete-confirm"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE"
-              />
+              <Label htmlFor="delete-confirm">Type <strong>DELETE</strong> to confirm</Label>
+              <Input id="delete-confirm" autoComplete="off" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRequestDeletion}
-              disabled={loading || deleteConfirmText !== 'DELETE'}
-            >
-              Permanently Delete Account
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleRequestDeletion} disabled={requestingDeletion || deleteConfirmText !== 'DELETE'}>
+              {requestingDeletion && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+              Submit deletion request
             </Button>
           </DialogFooter>
         </DialogContent>

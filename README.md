@@ -9,23 +9,22 @@ UhaiLink is an AI-powered, offline-ready emergency medical platform that provide
 ## Features
 
 ### Emergency Response
-- **One-Tap SOS** — Trigger emergency alerts with geolocation
-- **SMS Notifications** — Alert emergency contacts via Africa's Talking / Twilio
-- **Emergency Directory** — Verified hospitals, ambulances, and rescue services across Kenya
+- **SOS** — A confirmed SOS records the emergency (with location if permitted) and texts the user's emergency contacts via Africa's Talking / Twilio. The app reports only outcomes the backend confirms (sent N of M / failed / no contacts) and always offers direct calls to 999, 112 and 1199. It does **not** contact emergency services.
+- **Emergency Directory** — Organisations maintained by admins, shown with tap-to-call numbers
 
 ### Medical QR ID
-- **Auto-Generated QR Codes** — Secure, token-based access to your medical profile
-- **First Responder Access** — Scan → instant view of blood type, allergies, medications, contacts
-- **Rate-Limited Scanning** — Server-side rate limiting (5/min per IP) with full audit trail
+- **QR Medical ID** — 128-bit random access tokens; regenerating replaces the code atomically
+- **First Responder View** — Scan → allergies, blood type (self-reported), medications, conditions, emergency contacts with tap-to-call, primary hospital. Missing data is shown as "not recorded"
+- **Rate-Limited Scanning** — Server-side, logged with a pseudonymised client IP (see `supabase/migrations/20261021000001_*`: 10 scans/min per network per code, 60/min per network)
 
 ### AI Health Assistant
 - **AI-Powered First Aid** — Step-by-step emergency guidance via OpenRouter AI
-- **Context-Aware** — Uses your medical profile for personalized responses
+- **Privacy by default** — The user's name is never sent; medical context is included only when the user switches it on
 - **Server-Side API** — API keys secured in Supabase Edge Functions (never exposed client-side)
 
 ### Learning Center
 - Video tutorials, articles, webinars, and downloadable materials
-- Progress tracking for first aid certification paths
+- Self-reported completion tracking for tutorials
 
 ### Admin Dashboard
 - 8-tab interface: Analytics, Users, Content, Organizations, QR Products, Emergencies, Payments, Audit Logs
@@ -88,7 +87,9 @@ npm run dev        # Start dev server at http://localhost:8080
 npm run build      # Production build (with PWA, compression, source maps)
 npm run preview    # Preview production build locally
 npm run lint       # Run ESLint
-npx tsc --noEmit   # TypeScript type check
+npm run typecheck  # TypeScript type check (app config; plain `npx tsc --noEmit` checks nothing)
+npm test           # Unit tests (vitest)
+npm run test:e2e   # Rendered tests (Playwright, installed Chrome, Supabase fully mocked)
 ```
 
 ---
@@ -197,6 +198,11 @@ See [docs/RUNBOOK.md](docs/RUNBOOK.md) for operational procedures.
 ---
 
 ## Audit Status
+
+> **2026-10-21:** A UI/UX and integrity review found several items below were not fully resolved in code
+> (e.g. responder contacts, QR regeneration, SOS status reporting, service-worker caching of private data,
+> fake interactions). See [docs/UI_UX_TRANSFORMATION_REPORT.md](docs/UI_UX_TRANSFORMATION_REPORT.md) for what was fixed and what still needs deployment.
+
 
 All 40 findings from the comprehensive system audit have been addressed across 7 phases:
 

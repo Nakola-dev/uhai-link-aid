@@ -1,185 +1,68 @@
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CreditCard, Check, Star, ShoppingCart } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
+import { Clock, CreditCard, KeyRound, Printer, Smartphone, Watch } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import DashboardLayout from '@/components/DashboardLayout';
 
+const PRODUCTS = [
+  { icon: CreditCard, name: 'Wallet card', text: 'A durable card the size of your ID, carrying your QR code.' },
+  { icon: Watch, name: 'Wristband', text: 'A silicone band with your QR code, for sport, travel or everyday wear.' },
+  { icon: KeyRound, name: 'Keychain tag', text: 'A small tag that stays with your keys.' },
+];
+
+/**
+ * Physical tags are not on sale yet (no payment integration), so this page says so
+ * and points to what works today: printing or saving the QR code.
+ */
 const BuyQRTag = () => {
   const { profile, isAdmin } = useAuth();
-  const { toast } = useToast();
-
-  const handleOrderClick = (productName: string) => {
-    toast({
-      title: "Coming Soon!",
-      description: `${productName} ordering will be available soon. We'll notify you when it's ready.`,
-    });
-  };
-
-  const products = [
-    {
-      name: 'QR Card',
-      price: 'KSh 500',
-      description: 'Wallet-sized emergency ID card with your medical profile QR code',
-      features: [
-        'Durable plastic card',
-        'Water-resistant',
-        'Fits in any wallet',
-        'Lifetime QR code access',
-        'Free profile updates'
-      ],
-      image: '💳',
-      popular: false
-    },
-    {
-      name: 'QR Wristband',
-      price: 'KSh 800',
-      description: 'Comfortable silicone wristband with embedded QR code for instant access',
-      features: [
-        'Medical-grade silicone',
-        'Adjustable size',
-        '100% waterproof',
-        'Lifetime QR code access',
-        'Free profile updates',
-        'Multiple color options'
-      ],
-      image: '⌚',
-      popular: true
-    },
-    {
-      name: 'Complete Bundle',
-      price: 'KSh 1,200',
-      description: 'Get both the card and wristband at a discounted price',
-      features: [
-        'QR Card included',
-        'QR Wristband included',
-        'Save KSh 100',
-        'Lifetime QR code access',
-        'Free profile updates',
-        'Priority support'
-      ],
-      image: '🎁',
-      popular: false
-    }
-  ];
 
   return (
     <DashboardLayout user={profile} isAdmin={isAdmin}>
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold">Get Your Emergency QR Tag</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Carry your medical profile everywhere. In an emergency, first responders can scan your QR code to access your vital information instantly.
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">QR cards and tags</h1>
+          <p className="text-muted-foreground">
+            Ready-made cards and tags carrying your QR medical ID are on the way. They aren't available to order yet.
           </p>
         </div>
 
-        {/* Products */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {products.map((product, index) => (
-            <Card 
-              key={index} 
-              className={`relative overflow-hidden ${product.popular ? 'border-primary shadow-lg scale-105' : ''}`}
-            >
-              {product.popular && (
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-primary">
-                    <Star className="h-3 w-3 mr-1" />
-                    Popular
-                  </Badge>
-                </div>
-              )}
-              
-              <CardHeader className="text-center pb-4">
-                <div className="text-6xl mb-4">{product.image}</div>
-                <CardTitle className="text-2xl">{product.name}</CardTitle>
-                <div className="text-3xl font-bold text-primary my-2">{product.price}</div>
-                <CardDescription>{product.description}</CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
-                  {product.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start">
-                      <Check className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              
-              <CardFooter>
-                <Button 
-                  className="w-full"
-                  variant={product.popular ? 'default' : 'outline'}
-                  onClick={() => handleOrderClick(product.name)}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Order Now
-                </Button>
-              </CardFooter>
-            </Card>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {PRODUCTS.map(({ icon: Icon, name, text }) => (
+            <li key={name} className="flex flex-col rounded-2xl border bg-card p-5">
+              <Icon className="mb-3 h-7 w-7 text-primary" aria-hidden="true" />
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-sans text-base font-semibold">{name}</h2>
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="h-3 w-3" aria-hidden="true" />
+                  Coming soon
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{text}</p>
+            </li>
           ))}
-        </div>
+        </ul>
 
-        {/* Benefits Section */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Why You Need This</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-lg">⚡ Instant Access</h4>
-                <p className="text-muted-foreground">
-                  Emergency responders can scan your QR code to instantly view your medical history, allergies, and emergency contacts.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold text-lg">🔒 Secure & Private</h4>
-                <p className="text-muted-foreground">
-                  Your information is encrypted and only accessible through your unique QR code. You control what information is shared.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold text-lg">♾️ Always Updated</h4>
-                <p className="text-muted-foreground">
-                  Update your profile anytime through the app. Your QR code never changes, but the information stays current.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-semibold text-lg">🌍 Works Anywhere</h4>
-                <p className="text-muted-foreground">
-                  No app required to scan. Works with any smartphone camera in Kenya and around the world.
-                </p>
-              </div>
+        <section aria-labelledby="today-heading" className="rounded-2xl border-2 border-primary/30 bg-accent/60 p-6">
+          <h2 id="today-heading" className="font-sans text-lg font-semibold">You can carry your code today</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your QR medical ID works the same printed on paper or saved on your phone.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="flex gap-3 rounded-xl border bg-card p-4 text-sm">
+              <Printer className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              Print it and keep it in your wallet or ID holder.
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Info */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <CardTitle>Payment Options</CardTitle>
+            <div className="flex gap-3 rounded-xl border bg-card p-4 text-sm">
+              <Smartphone className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              Save the image as your lock-screen wallpaper.
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              We accept the following payment methods for your convenience:
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Badge variant="outline" className="text-base py-2 px-4">M-PESA</Badge>
-              <Badge variant="outline" className="text-base py-2 px-4">Visa/Mastercard</Badge>
-              <Badge variant="outline" className="text-base py-2 px-4">Bank Transfer</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Free delivery within Nairobi. Countrywide shipping available.
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <Button asChild className="mt-5">
+            <Link to="/dashboard/qr">Open my Medical ID</Link>
+          </Button>
+        </section>
       </div>
     </DashboardLayout>
   );

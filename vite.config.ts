@@ -14,14 +14,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "robots.txt"],
+      // main.tsx registers /sw.js itself (with an hourly update check); don't inject a second registration.
+      injectRegister: false,
+      includeAssets: ["favicon.svg", "robots.txt", "icons/apple-touch-icon.png"],
       manifest: {
-        name: "UhaiLink - Emergency Medical QR Platform",
+        name: "UhaiLink — Emergency Medical ID",
         short_name: "UhaiLink",
         description:
-          "Instant access to critical medical information through QR codes. Save lives with secure, accessible emergency medical profiles.",
-        theme_color: "#DC2626",
-        background_color: "#FFFFFF",
+          "Your medical identity, ready when seconds matter: a QR medical ID for first responders and an SOS that alerts your emergency contacts.",
+        theme_color: "#1D5FD6",
+        background_color: "#F7F9FC",
         display: "standalone",
         orientation: "portrait-primary",
         scope: "/",
@@ -29,127 +31,68 @@ export default defineConfig({
         categories: ["health", "medical", "emergency"],
         lang: "en",
         icons: [
-          {
-            src: "/icons/icon-72x72.svg",
-            sizes: "72x72",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-96x96.svg",
-            sizes: "96x96",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-128x128.svg",
-            sizes: "128x128",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-144x144.svg",
-            sizes: "144x144",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-152x152.svg",
-            sizes: "152x152",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-192x192.svg",
-            sizes: "192x192",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-384x384.svg",
-            sizes: "384x384",
-            type: "image/svg+xml",
-          },
-          {
-            src: "/icons/icon-512x512.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any",
-          },
-          {
-            src: "/icons/icon-maskable-512x512.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "maskable",
-          },
+          { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/icon-maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
         ],
       },
       workbox: {
-        // Cache strategies for different resource types
+        // Cache strategies for different resource types.
+        // Medical, account and emergency data must never reach Cache Storage, so only
+        // public read-only content is cached; every other Supabase request is network-only.
         runtimeCaching: [
           {
-            // Supabase API calls - Network First (fresh data, offline fallback)
+            // Public learning content and the emergency directory - Network First (offline fallback)
             urlPattern:
-              /^https:\/\/jlgzlwyuaopnjhdnnjyr\.supabase\.co\/rest\/v1\/.*/i,
+              /^https:\/\/[a-z0-9-]+\.supabase\.co\/rest\/v1\/(emergency_organizations|tutorials|articles|webinars|downloadable_materials)(\?|$)/i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-api-cache",
+              cacheName: "supabase-public-content",
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60, // 1 hour
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24, // 1 day
               },
               networkTimeoutSeconds: 5,
               cacheableResponse: {
-                statuses: [0, 200],
+                statuses: [200],
               },
             },
           },
           {
-            // Supabase Auth - Network Only (never cache auth responses)
+            // Public Storage objects only (e.g. learning thumbnails) - Cache First
             urlPattern:
-              /^https:\/\/jlgzlwyuaopnjhdnnjyr\.supabase\.co\/auth\/.*/i,
-            handler: "NetworkOnly",
-          },
-          {
-            // Supabase Storage (profile images, QR codes) - Cache First
-            urlPattern:
-              /^https:\/\/jlgzlwyuaopnjhdnnjyr\.supabase\.co\/storage\/.*/i,
+              /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "supabase-storage-cache",
+              cacheName: "supabase-public-storage",
               expiration: {
-                maxEntries: 200,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
               },
               cacheableResponse: {
-                statuses: [0, 200],
+                statuses: [200],
               },
             },
           },
           {
-            // Google Fonts stylesheets - Stale While Revalidate
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "google-fonts-stylesheets",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-            },
-          },
-          {
-            // Google Fonts webfonts - Cache First (fonts rarely change)
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
+            // Everything else on Supabase (auth, profiles, contacts, incidents, QR scans,
+            // chat, Edge Functions, private storage) - Network Only
+            urlPattern: /^https:\/\/[a-z0-9-]+\.supabase\.co\/.*/i,
+            handler: "NetworkOnly",
           },
         ],
-        // Pre-cache the offline fallback page
+        // Precache the app shell. Fonts: only the Latin upright files (other subsets
+        // still load on demand through unicode-range).
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Not precached: non-Latin font subsets, admin chunks (admin data is network-only, so
+        // admin pages are unusable offline anyway) and the social preview image (crawlers only).
+        globIgnores: [
+          "**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese,latin-ext}-*.woff2",
+          "**/*-italic*.woff2",
+          "**/assets/Admin*.js",
+          "og-image.png",
+        ],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
       },
@@ -169,26 +112,16 @@ export default defineConfig({
     },
   },
   build: {
-    // Optimize chunk splitting
+    // Only React is grouped (needed on every route). Other libraries, notably recharts,
+    // are split by Rollup per route so public and responder pages don't download them.
     rollupOptions: {
       output: {
         manualChunks: {
-          // Vendor chunks for better caching
           "react-vendor": ["react", "react-dom", "react-router-dom"],
-          "ui-vendor": [
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-toast",
-            "@radix-ui/react-tooltip",
-          ],
-          "form-vendor": [
-            "react-hook-form",
-            "@hookform/resolvers",
-            "zod",
-          ],
-          "chart-vendor": ["recharts"],
         },
+        // Fold tiny side-effect-free chunks (mostly single icons) into their neighbours:
+        // each one otherwise costs a round trip on slow mobile connections.
+        experimentalMinChunkSize: 10_000,
       },
     },
     // Target modern browsers for smaller bundles

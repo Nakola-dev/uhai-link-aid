@@ -1,343 +1,271 @@
-import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, QrCode, Clock, Heart, CheckCircle2, ArrowRight, Activity, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  BellRing,
+  Bot,
+  BookOpen,
+  Eye,
+  FileLock2,
+  IdCard,
+  KeyRound,
+  ListChecks,
+  Phone,
+  QrCode,
+  RefreshCw,
+  ScanLine,
+  ShieldAlert,
+  ShieldCheck,
+  Smartphone,
+  UserRoundPen,
+  WifiOff,
+} from 'lucide-react';
+import { useReveal } from '@/hooks/use-reveal';
+import { EMERGENCY_NUMBERS, telHref } from '@/lib/emergency-numbers';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import SectionHeading from '@/components/common/SectionHeading';
+import HeroVisual from '@/components/landing/HeroVisual';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
+
+const TRUST_FACTS = [
+  { icon: Smartphone, text: 'Opens with any phone camera — no app needed' },
+  { icon: Eye, text: 'Responders see emergency details only' },
+  { icon: RefreshCw, text: 'Replace your code any time' },
+  { icon: ListChecks, text: 'Your consent is recorded before health data is stored' },
+];
+
+const STEPS = [
+  { icon: UserRoundPen, title: 'Create your medical profile', text: 'Add your blood type, allergies, medications, conditions and the people to contact. It takes about three minutes.' },
+  { icon: QrCode, title: 'Get your QR medical ID', text: 'UhaiLink generates a private code that links to your emergency information — nothing else.' },
+  { icon: IdCard, title: 'Keep it where it can be found', text: 'Print it for your wallet, save it as your lock screen, or put it on a tag or keychain.' },
+  { icon: ScanLine, title: 'Responders scan it', text: 'Anyone helping you scans with their camera and sees allergies, medications, conditions and who to call. Scanning shows information — it does not alert anyone.' },
+  { icon: BellRing, title: 'Alert your people with SOS', text: 'When you press SOS and confirm, your emergency contacts get an SMS with your location if you allow it. Always call 999 or 112 too.' },
+  { icon: BookOpen, title: 'Learn what to do', text: 'Short first-aid guides and an AI assistant help you act in the first minutes, for yourself or someone else.' },
+];
+
+const FEATURES = [
+  {
+    icon: ShieldAlert,
+    title: 'One-tap SOS',
+    text: 'A confirmed SOS records the emergency and texts your contacts. The app tells you exactly how many messages were sent — and offers direct calls if any fail.',
+  },
+  {
+    icon: Bot,
+    title: 'AI first-aid guidance',
+    text: 'Describe what is happening and get calm, step-by-step guidance. It never replaces 999 or a clinician, and your name is never sent to the AI.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Learning centre',
+    text: 'First-aid basics, videos, webinars and printable guides — free for everyone, with progress tracking when you sign in.',
+  },
+  {
+    icon: WifiOff,
+    title: 'Works when data runs out',
+    text: 'A printed code works even if your phone is lost or flat. Call buttons for 999, 112 and 1199 work without mobile data.',
+  },
+];
+
+const SECURITY = [
+  { icon: FileLock2, title: 'Access is locked down', text: 'Database rules mean only you, and authorised UhaiLink administrators, can open or change your record.' },
+  { icon: ScanLine, title: 'Every scan is logged', text: 'Each time your code is opened, the time is recorded and repeated scans are rate-limited.' },
+  { icon: KeyRound, title: 'Lost your code? Replace it', text: 'Issue a new code in one tap. The old one stops working immediately.' },
+  { icon: ShieldCheck, title: 'Emergency information only', text: 'Responders see what helps in an emergency — not your account, email or full history.' },
+];
+
+const FAQS = [
+  { q: 'What does a responder see when they scan my code?', a: 'Your name, allergies, blood type, current medications, medical conditions, primary hospital and your emergency contacts with tap-to-call buttons. They never see your email, password or account settings.' },
+  { q: 'Does scanning the code call an ambulance?', a: 'No. Scanning only shows your emergency information. To alert your contacts, you (or someone with your phone) presses SOS in the app. Emergency services are always reached by calling 999 or 112.' },
+  { q: 'What if I lose my card or someone copies my code?', a: 'Open My Medical ID and issue a new code. The old code stops working straight away; print or save the new one.' },
+  { q: 'Do responders need to install anything?', a: 'No. Any phone camera that reads QR codes opens your information in a web browser.' },
+  { q: 'Is it free?', a: 'Creating your profile and QR medical ID is free. Physical cards and tags will be offered separately.' },
+  { q: 'Does it work without internet?', a: 'Responders need a connection to open your information, and SOS needs a connection to send SMS. Calling 999, 112 or 1199 from the app works without mobile data.' },
+];
 
 const Index = () => {
-  const [registeredUsers, setRegisteredUsers] = useState(0);
-  const [qrCodesIssued, setQrCodesIssued] = useState(0);
-  const [emergencyResponses, setEmergencyResponses] = useState(0);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const [statsLoaded, setStatsLoaded] = useState(false);
-
-  // Fetch real statistics from the database
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [usersRes, qrRes, incidentsRes] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('qr_access_tokens').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('emergency_incidents').select('*', { count: 'exact', head: true }),
-        ]);
-
-        setRegisteredUsers(usersRes.count ?? 0);
-        setQrCodesIssued(qrRes.count ?? 0);
-        setEmergencyResponses(incidentsRes.count ?? 0);
-        setStatsLoaded(true);
-      } catch {
-        // Silently fail — stats section will show 0
-        setStatsLoaded(true);
-      }
-    };
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    if (!statsLoaded) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !hasAnimated) {
-          setHasAnimated(true);
-          animateCounter(setRegisteredUsers, registeredUsers, 1500);
-          animateCounter(setQrCodesIssued, qrCodesIssued, 1500);
-          animateCounter(setEmergencyResponses, emergencyResponses, 1500);
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    if (statsRef.current) {
-      observer.observe(statsRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasAnimated, statsLoaded, registeredUsers, qrCodesIssued, emergencyResponses]);
-
-  const animateCounter = (setter: (val: number) => void, target: number, duration: number) => {
-    const start = 0;
-    const increment = target / (duration / 16);
-    let current = start;
-
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) {
-        setter(target);
-        clearInterval(timer);
-      } else {
-        setter(Math.floor(current));
-      }
-    }, 16);
-  };
-
-  const features = [
-    {
-      icon: QrCode,
-      title: 'Instant Access',
-      description: 'Emergency responders scan your QR code to instantly access critical medical information.',
-    },
-    {
-      icon: Shield,
-      title: 'Secure & Private',
-      description: 'Your data is encrypted and only accessible through your unique QR code.',
-    },
-    {
-      icon: Clock,
-      title: 'Save Lives',
-      description: 'In emergencies, every second counts. Provide crucial info when you cannot speak.',
-    },
-    {
-      icon: Heart,
-      title: 'Peace of Mind',
-      description: 'Know that your medical history is always available to those who need it most.',
-    },
-  ];
-
-  const steps = [
-    {
-      number: '01',
-      title: 'Create Your Profile',
-      description: 'Sign up and add your medical information, allergies, and emergency contacts.',
-    },
-    {
-      number: '02',
-      title: 'Generate QR Code',
-      description: 'Get your unique QR code that links to your medical profile.',
-    },
-    {
-      number: '03',
-      title: 'Share & Stay Safe',
-      description: 'Print it, wear it, or keep it on your phone. Be prepared for emergencies.',
-    },
-  ];
+  const pageRef = useReveal<HTMLDivElement>();
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 md:py-32">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
-        
-        {/* Floating particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-2 h-2 bg-primary/20 rounded-full animate-pulse" />
-          <div className="absolute top-40 right-20 w-3 h-3 bg-secondary/20 rounded-full animate-pulse delay-300" />
-          <div className="absolute bottom-32 left-1/4 w-2 h-2 bg-accent/20 rounded-full animate-pulse delay-700" />
-          <div className="absolute bottom-20 right-1/3 w-3 h-3 bg-primary/20 rounded-full animate-pulse delay-500" />
-        </div>
-
-        <div className="container mx-auto px-4 relative">
-          <div className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto">
-            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary/10 rounded-full animate-fade-in">
-              <Heart className="h-4 w-4 text-primary animate-heartbeat" />
-              <span className="text-sm font-medium text-primary">Emergency Medical Information</span>
+      <div ref={pageRef}>
+        {/* Hero */}
+        <section className="relative overflow-hidden border-b">
+          <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(60rem_30rem_at_80%_-10%,hsl(var(--primary)/0.08),transparent)]" />
+          <div className="container relative grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+            <div className="space-y-7">
+              {/* Hero text is not animated: it is the LCP element and must paint as soon as it renders. */}
+              <p className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
+                Empowering you to act when every second counts
+              </p>
+              <h1 className="font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+                Your medical identity, ready when seconds matter.
+              </h1>
+              <p className="max-w-xl text-lg text-muted-foreground text-pretty sm:text-xl">
+                Give first responders secure access to your critical medical information when you need help most —
+                with a QR code anyone can scan.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="h-12 px-6 text-base">
+                  <Link to="/auth?tab=signup">
+                    Create my medical ID
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="h-12 px-6 text-base">
+                  <Link to="/demo/responder">See what responders see</Link>
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Free to create · Takes about three minutes</p>
             </div>
-            
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight animate-slide-in-left">
-              Empowering You to Act
-              <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                When Every Second Counts
-              </span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl animate-slide-in-right">
-              UhaiLink provides instant access to your critical medical information when you need it most. 
-              Be prepared. Be safe. Save lives.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 animate-fade-in">
-              <Button size="lg" asChild className="group hover:scale-105 transition-all shadow-lg hover:shadow-xl">
-                <Link to="/auth">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <HeroVisual />
+          </div>
+        </section>
+
+        {/* Trust facts */}
+        <section aria-label="Key facts" className="border-b bg-card">
+          <ul className="container grid gap-x-8 gap-y-4 py-6 sm:grid-cols-2 lg:grid-cols-4">
+            {TRUST_FACTS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3 text-sm font-medium">
+                <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                {text}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* How it works */}
+        <section id="how-it-works" aria-labelledby="how-heading" className="container scroll-mt-20 py-20 sm:py-24">
+          <SectionHeading id="how-heading" eyebrow="How it works" title="From sign-up to safety net in six steps" />
+          <ol className="mt-12 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, text }, index) => (
+              <li key={title} className="reveal relative pl-14" style={{ transitionDelay: `${(index % 3) * 70}ms` }}>
+                <span className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Step {index + 1}</p>
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="mt-2 text-muted-foreground">{text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Responder view spotlight */}
+        <section aria-labelledby="responder-heading" className="border-y bg-muted/50">
+          <div className="container grid items-center gap-12 py-20 sm:py-24 lg:grid-cols-2">
+            <div className="reveal space-y-6">
+              <SectionHeading
+                id="responder-heading"
+                eyebrow="Built for the person helping you"
+                title="Clear enough to read in a hurry"
+                description="The responder screen puts allergies first, says plainly when something isn't recorded, and makes every contact one tap away. No menus, no sign-in, no animations."
+              />
+              <Button asChild size="lg" variant="outline">
+                <Link to="/demo/responder">
+                  Open the responder demo
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="hover:scale-105 transition-all">
-                <Link to="/about">Learn More</Link>
-              </Button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics Section */}
-      <section ref={statsRef} className="py-16 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center space-y-3 group cursor-pointer">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2 group-hover:scale-110 transition-transform">
-                <Users className="h-8 w-8 text-primary group-hover:animate-pulse" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-primary">
-                {registeredUsers.toLocaleString()}
-              </div>
-              <div className="text-lg text-muted-foreground">Registered Users</div>
-            </div>
-            
-            <div className="text-center space-y-3 group cursor-pointer">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary/10 mb-2 group-hover:scale-110 transition-transform">
-                <QrCode className="h-8 w-8 text-secondary group-hover:animate-pulse" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-secondary">
-                {qrCodesIssued.toLocaleString()}
-              </div>
-              <div className="text-lg text-muted-foreground">QR Codes Issued</div>
-            </div>
-            
-            <div className="text-center space-y-3 group cursor-pointer">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-2 group-hover:scale-110 transition-transform">
-                <Activity className="h-8 w-8 text-accent group-hover:animate-pulse" />
-              </div>
-              <div className="text-4xl md:text-5xl font-bold text-accent">
-                {emergencyResponses.toLocaleString()}
-              </div>
-              <div className="text-lg text-muted-foreground">Emergency Responses</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose UhaiLink?</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              A simple, secure solution for medical emergencies
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <Card 
-                key={index} 
-                className="border-none shadow-card hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group animate-fade-in"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                <CardHeader>
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                    <feature.icon className="h-6 w-6 text-primary" />
+            <ol className="reveal space-y-3">
+              {[
+                ['Allergies', 'Shown first, highlighted when present'],
+                ['Blood type', 'Marked as self-reported'],
+                ['Medications & conditions', 'Listed in plain words'],
+                ['Emergency contacts', 'Tap to call, in your chosen order'],
+                ['Primary hospital', 'So care can be continued'],
+              ].map(([title, text], index) => (
+                <li key={title} className="flex items-center gap-4 rounded-xl border bg-card p-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground tabular-nums">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="font-semibold">{title}</p>
+                    <p className="text-sm text-muted-foreground">{text}</p>
                   </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">{feature.description}</CardDescription>
-                </CardContent>
-              </Card>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section aria-labelledby="features-heading" className="container py-20 sm:py-24">
+          <SectionHeading id="features-heading" eyebrow="More than a QR code" title="Help for the moments before help arrives" />
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {FEATURES.map(({ icon: Icon, title, text }, index) => (
+              <div key={title} className="reveal rounded-2xl border bg-card p-6 shadow-elevation-1" style={{ transitionDelay: `${(index % 2) * 80}ms` }}>
+                <Icon className={`mb-4 h-7 w-7 ${title === 'One-tap SOS' ? 'text-destructive' : 'text-primary'}`} aria-hidden="true" />
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="mt-2 text-muted-foreground">{text}</p>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How It Works */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Get started in three simple steps
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {steps.map((step, index) => (
-              <div key={index} className="relative animate-fade-in" style={{ animationDelay: `${index * 200}ms` }}>
-                <div className="text-center space-y-4 group cursor-pointer">
-                  <div className="relative inline-flex items-center justify-center">
-                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                    <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-lg">
-                      <span className="text-2xl font-bold text-white">{step.number}</span>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">{step.title}</h3>
-                  <p className="text-muted-foreground">{step.description}</p>
+        {/* Privacy & security */}
+        <section aria-labelledby="security-heading" className="border-y bg-card">
+          <div className="container py-20 sm:py-24">
+            <SectionHeading
+              id="security-heading"
+              eyebrow="Privacy & security"
+              title="Your information, under your control"
+              description="Health information deserves care. Here is how UhaiLink handles yours."
+            />
+            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {SECURITY.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="reveal">
+                  <Icon className="mb-3 h-6 w-6 text-teal" aria-hidden="true" />
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
                 </div>
-                {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary/50 to-transparent animate-pulse" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary via-secondary to-primary relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-20 h-20 border-2 border-white rounded-full animate-pulse" />
-          <div className="absolute bottom-10 right-10 w-32 h-32 border-2 border-white rounded-full animate-pulse delay-500" />
-          <div className="absolute top-1/2 left-1/2 w-40 h-40 border-2 border-white rounded-full animate-pulse delay-1000" />
-        </div>
-
-        <div className="container mx-auto px-4 relative">
-          <div className="max-w-3xl mx-auto text-center text-white space-y-6 animate-fade-in">
-            <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Secure Your Medical Information?
-            </h2>
-            <p className="text-lg opacity-90">
-              Join thousands of users who trust UhaiLink to keep their medical information accessible in emergencies.
+              ))}
+            </div>
+            <p className="mt-10 text-sm text-muted-foreground">
+              Read the <Link to="/privacy-policy" className="font-medium text-primary underline-offset-4 hover:underline">Privacy Policy</Link>{' '}
+              and <Link to="/medical-disclaimer" className="font-medium text-primary underline-offset-4 hover:underline">medical disclaimer</Link>.
             </p>
-            <Button size="lg" variant="secondary" asChild className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all group shadow-xl">
-              <Link to="/auth">
-                Create Your Free Account
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section aria-labelledby="faq-heading" className="container grid gap-10 py-20 sm:py-24 lg:grid-cols-[1fr_1.6fr]">
+          <SectionHeading id="faq-heading" eyebrow="Questions" title="Good to know" />
+          <Accordion type="single" collapsible className="w-full">
+            {FAQS.map(({ q, a }, index) => (
+              <AccordionItem key={q} value={`faq-${index}`}>
+                <AccordionTrigger className="text-left text-base">{q}</AccordionTrigger>
+                <AccordionContent className="text-base text-muted-foreground">{a}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </section>
+
+        {/* Final CTA */}
+        <section className="container pb-20 sm:pb-24">
+          <div className="reveal flex flex-col items-start gap-6 rounded-3xl bg-primary px-6 py-12 text-primary-foreground sm:px-12 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <h2 className="font-display text-3xl font-bold tracking-tight text-balance">Set up your medical ID today</h2>
+              <p className="max-w-xl text-primary-foreground/90">It takes about three minutes, and it could save the people helping you precious time.</p>
+            </div>
+            <Button asChild size="lg" variant="secondary" className="h-12 px-6 text-base">
+              <Link to="/auth?tab=signup">Create my medical ID</Link>
             </Button>
           </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-            <div className="space-y-6 animate-slide-in-left">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Essential for Everyone
-              </h2>
-              <p className="text-lg text-muted-foreground">
-                Whether you have chronic conditions, allergies, or just want to be prepared, 
-                UhaiLink is your digital medical ID that's always with you.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  'Store critical medical information securely',
-                  'Add multiple emergency contacts',
-                  'Update information anytime',
-                  'Access from any smartphone',
-                  'No subscription fees',
-                ].map((benefit, index) => (
-                  <li key={index} className="flex items-start space-x-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                    <CheckCircle2 className="h-6 w-6 text-success flex-shrink-0 mt-0.5" />
-                    <span className="text-lg">{benefit}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="relative animate-slide-in-right">
-              <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
-              <Card className="relative border-2 border-primary/20 shadow-lg hover:shadow-xl transition-all hover:-translate-y-2">
-                <CardHeader className="text-center">
-                  <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <QrCode className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle>Sample QR Code</CardTitle>
-                  <CardDescription>Instant access to medical info</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center p-8">
-                  <div className="h-48 w-48 bg-muted rounded-lg flex items-center justify-center hover:scale-105 transition-transform">
-                    <QrCode className="h-32 w-32 text-muted-foreground/30" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span className="flex items-center gap-2 font-semibold">
+              <Phone className="h-4 w-4 text-destructive" aria-hidden="true" />
+              In an emergency right now?
+            </span>
+            {EMERGENCY_NUMBERS.map((line) => (
+              <a key={line.number} href={telHref(line.number)} className="font-semibold text-destructive underline-offset-4 hover:underline">
+                Call {line.number} <span className="font-normal text-muted-foreground">({line.label})</span>
+              </a>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </Layout>
   );
 };

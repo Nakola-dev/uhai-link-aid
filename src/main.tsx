@@ -2,8 +2,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import App from "./App.tsx";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./index.css";
 import { initWebVitals } from "./lib/web-vitals.ts";
+import { purgeSensitiveCaches } from "./lib/sensitive-cache.ts";
+
+// Remove medical data cached by earlier service-worker builds (non-blocking).
+purgeSensitiveCaches();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

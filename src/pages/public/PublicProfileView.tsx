@@ -1,7 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2, RefreshCw, WifiOff } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import ResponderLayout from '@/components/responder/ResponderLayout';
 import ResponderProfile from '@/components/responder/ResponderProfile';
@@ -33,13 +32,24 @@ function classify(message: string | undefined): ScanFailure {
 
 async function scanProfile(token: string): Promise<ResponderProfileData> {
   // Server-side function validates the token, rate-limits, logs the scan and
-  // returns only the emergency subset of the profile.
-  const { data, error } = await supabase.rpc('check_and_log_qr_scan', {
-    _access_token: token,
-    _user_agent: navigator.userAgent,
-  });
-  if (error) throw new ScanError(navigator.onLine ? 'unavailable' : 'offline');
-  const result = data as unknown as ScanResult;
+  // returns only the emergency subset of the profile. Called with plain fetch (anonymous key,
+  // no session) so responders don't download supabase-js just to make one RPC call.
+  let result: ScanResult;
+  try {
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/check_and_log_qr_scan`, {
+      method: 'POST',
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ _access_token: token, _user_agent: navigator.userAgent }),
+    });
+    if (!response.ok) throw new Error(String(response.status));
+    result = (await response.json()) as ScanResult;
+  } catch {
+    throw new ScanError(navigator.onLine ? 'unavailable' : 'offline');
+  }
   if (!result?.success || !result.profile) throw new ScanError(classify(result?.error));
   return result.profile;
 }

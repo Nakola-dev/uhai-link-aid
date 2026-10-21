@@ -4,12 +4,12 @@ import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import RouteMeta from "@/components/RouteMeta";
 
 // Lazy-loaded pages — only downloaded when the route is visited (F-026)
 const Index = lazy(() => import("@/pages/public/Index"));
+const ProtectedRoute = lazy(() => import("@/components/ProtectedRoute"));
 const Auth = lazy(() => import("@/pages/public/Auth"));
 const About = lazy(() => import("@/pages/public/About"));
 const Contact = lazy(() => import("@/pages/public/Contact"));

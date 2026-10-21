@@ -12,6 +12,20 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    {
+      // Preload the two Latin variable fonts so headings and body text paint in their final
+      // face without waiting for the CSS to be parsed (the headline is the landing LCP element).
+      name: "preload-latin-fonts",
+      apply: "build",
+      transformIndexHtml(_html, ctx) {
+        const fonts = Object.keys(ctx.bundle ?? {}).filter((file) => /(inter|plus-jakarta-sans)-latin-wght-normal-.*.woff2$/.test(file));
+        return fonts.map((file) => ({
+          tag: "link",
+          attrs: { rel: "preload", as: "font", type: "font/woff2", crossorigin: "", href: "/" + file },
+          injectTo: "head-prepend",
+        }));
+      },
+    },
     VitePWA({
       registerType: "autoUpdate",
       // main.tsx registers /sw.js itself (with an hourly update check); don't inject a second registration.
@@ -118,6 +132,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           "react-vendor": ["react", "react-dom", "react-router-dom"],
+          // One request instead of a fan-out of single-icon chunks behind every page.
+          icons: ["lucide-react"],
         },
         // Fold tiny side-effect-free chunks (mostly single icons) into their neighbours:
         // each one otherwise costs a round trip on slow mobile connections.

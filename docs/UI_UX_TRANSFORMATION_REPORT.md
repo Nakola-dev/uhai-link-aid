@@ -15,7 +15,7 @@ UhaiLink now has a coherent, accessible design system and a product-led public s
 - **QR medical IDs** use 128-bit random tokens; "new code" now works and can no longer leave someone without a code.
 - **Private data** is no longer cached by the service worker; caches are purged on sign-out.
 - **Fake interactions removed:** contact form, downloads, learning progress, payments data, invented statistics and unbuilt features presented as available.
-- **Performance:** initial JavaScript on public pages down from ~274 KB to 141–188 KB gzip, with no chart or admin code; no layout shift on any measured route. The plan's bundle, precache and LCP targets were **not** all met — see §G for the numbers and what it would take.
+- **Performance:** initial JavaScript on public pages down from ~274 KB to 99–202 KB gzip (105 KB on the responder page, 135 KB on the landing page), with no chart or admin code; no layout shift on any measured route. The JavaScript budgets are met; the landing LCP (2.66 s vs 2.5 s) and precache (1,115 vs 900 KiB) targets were **not** met — see §G for the numbers and what it would take.
 
 Checks: real type-check went from **11 errors to 0**, lint from **1 error to 0**, and a new automated suite (unit, rendered, WCAG 2.2 axe, responsive, reduced-motion) runs without a backend. Results are in §J.
 
@@ -114,20 +114,22 @@ All versions pinned and ≥ 2 weeks old. `npm audit`: 39 advisories before and a
 
 | Metric | Baseline | Plan target | Final | Met |
 |---|---|---|---|---|
-| Initial JS on `/` (gzip) | ~274 KB | ≤ 150 KB | **171.4 KB** (26 files) | No |
-| Initial JS on `/profile/:token` (gzip) | ~274 KB | ≤ 120 KB | **147.8 KB** (14 files) | No |
+| Initial JS on `/` (gzip) | ~274 KB | ≤ 150 KB | **135.4 KB** (10 files) | Yes |
+| Initial JS on `/profile/:token` (gzip) | ~274 KB | ≤ 120 KB | **104.6 KB** (5 files) | Yes |
 | recharts / admin code on non-admin routes | yes (110.5 KB gz preloaded everywhere) | none | **none** on every measured route | Yes |
 | SW precache | 1,475.55 KiB (109 entries) | ≤ 900 KiB | **1,111.98 KiB** (96 entries, now incl. 74 KiB self-hosted fonts) | No |
 | CLS | not measured | < 0.1 | **0.000** on `/`, `/profile/:token`, `/learn`, `/auth` | Yes |
-| LCP `/` | not measured | < 2.5 s | **3.20 s** | No |
-| LCP `/profile/:token` | not measured | < 2.5 s | **2.57 s** | No (borderline) |
-| LCP `/learn`, `/auth` | not measured | — | 2.92 s, 2.87 s | — |
+| LCP `/` | not measured | < 2.5 s | **2.66 s** (was 3.20 s) | No (borderline) |
+| LCP `/profile/:token` | not measured | < 2.5 s | **2.28 s** | Yes |
+| LCP `/learn`, `/auth` | not measured | — | 2.80 s, 2.86 s | — |
 
-Other signed-out routes: `/auth` 187.6 KB, `/learn` 171.2 KB, `/services` 157.0 KB, `/demo/responder` 140.5 KB JS; CSS 18.9 KB gzip on every route. Signed-in page chunks on top of the shared shell: dashboard layout 4.3 KB, SOS 5.3 KB, medical profile 3.5 KB, QR 3.7 KB, assistant 5.1 KB; admin 118.8 KB (includes recharts; admin only, not precached).
+Other signed-out routes: `/auth` 202.2 KB, `/learn` 182.9 KB, `/services` 120.5 KB, `/demo/responder` 99.2 KB JS; CSS 18.9 KB gzip on every route. Signed-in page chunks on top of the shared shell: dashboard layout 4.3 KB, SOS 5.3 KB, medical profile 3.5 KB, QR 3.7 KB, assistant 5.1 KB; admin 118.8 KB (includes recharts; admin only, not precached).
 
 **Fixed during final measurement:** the responder page's footer jumped when the profile loaded (CLS 0.125 → 0; the loading state now fills the screen); the landing hero text faded in from `opacity: 0`, delaying LCP (3.91 s → 3.20 s; hero text is now static, the decorative composition still animates); 13 tiny side-effect-free chunks are merged (`experimentalMinChunkSize`), cutting requests on `/` from 30 to 26 and on the responder page from 16 to 14; admin chunks and the social preview image are no longer precached.
 
-**Why the remaining targets were missed.** Every route loads the shared shell: `react-vendor` 53.5 KB + the entry chunk 79.9 KB, which is mostly `supabase-js` (needed by the session listener and by the responder lookup). That alone is ~133 KB, above the 120 KB responder target. LCP is bounded by client-side rendering: nothing meaningful paints until the entry and the page chunk have downloaded and executed. Reaching the targets needs structural work, not tuning: prerender the landing page and the responder shell, load `supabase-js` lazily (or call the responder RPC with plain `fetch`), and serve over HTTP/2 from a CDN (the lab preview is HTTP/1.1, which exaggerates the cost of many small requests).
+**Second pass (structural).** `supabase-js` (~45 KB gzip) is no longer in the entry bundle: the responder lookup is one plain `fetch` to the same RPC with the anonymous key, and the header, route-meta listener and protected-route guard load it only when a stored session, the sign-in page or an auth redirect is present (`lib/supabase-lazy.ts`). Entry chunk 79.9 → 35.3 KB gzip. Lucide icons are one shared chunk instead of ~20 single-icon requests behind every page, and the decorative hero illustration (with the QR library) loads after the headline in a same-size placeholder. Latin fonts are preloaded (no measurable gain; kept as standard practice). Trying to bundle the landing page into the entry gave LCP 2.60 s but pushed the responder page to 125 KB, so it was reverted: the emergency path takes priority.
+
+**What remains.** Landing LCP is 2.66 s against 2.5 s (lab, 4x CPU slowdown, ~1.6 Mbps): the headline still waits for client-side rendering. True prerendering of the landing page (build-time HTML) would close it; it was not attempted because it adds a build step and hydration risk for a 0.16 s gap. The 900 KiB precache target is also missed (1,115 KiB, mostly fonts, `react-vendor`, and signed-in page chunks needed offline).
 
 ---
 
@@ -215,4 +217,4 @@ Other signed-out routes: `/auth` 187.6 KB, `/learn` 171.2 KB, `/services` 157.0 
 3. Upgrade the vulnerable toolchain packages in a dedicated PR.
 4. Add an in-app editor for learning content (admin Content tab is read-only today).
 5. Consider a Supabase Realtime subscription for Emergency operations (today it needs a manual refresh, and says so).
-6. Close the performance gap in §G: prerender the landing page and responder shell, load `supabase-js` lazily, host on HTTP/2.
+6. Close the last performance gap in §G: prerender the landing page at build time and serve over HTTP/2 from a CDN.

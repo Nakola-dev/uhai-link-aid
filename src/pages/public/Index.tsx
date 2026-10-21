@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -24,8 +25,10 @@ import { EMERGENCY_NUMBERS, telHref } from '@/lib/emergency-numbers';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import SectionHeading from '@/components/common/SectionHeading';
-import HeroVisual from '@/components/landing/HeroVisual';
 import Layout from '@/components/Layout';
+
+// Decorative and needs the QR library: loaded after the hero text, in a same-size placeholder.
+const HeroVisual = lazy(() => import('@/components/landing/HeroVisual'));
 
 const TRUST_FACTS = [
   { icon: Smartphone, text: 'Opens with any phone camera — no app needed' },
@@ -118,7 +121,9 @@ const Index = () => {
               </div>
               <p className="text-sm text-muted-foreground">Free to create · Takes about three minutes</p>
             </div>
-            <HeroVisual />
+            <Suspense fallback={<div aria-hidden="true" className="mx-auto h-[500px] w-full max-w-[440px] sm:h-[540px]" />}>
+              <HeroVisual />
+            </Suspense>
           </div>
         </section>
 

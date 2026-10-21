@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { hasAuthRedirect, hasStoredSession, loadSupabase } from '@/lib/supabase-lazy';
 import { purgeSensitiveCaches } from '@/lib/sensitive-cache';
 
 const SITE = 'UhaiLink';
@@ -63,20 +63,42 @@ const RouteMeta = () => {
     setRobots(PRIVATE_ROUTES.test(pathname) ? 'noindex, nofollow, noarchive' : null);
   }, [pathname]);
 
+  // supabase-js is only loaded when there is something to listen for: a stored session, the
+  // sign-in page, or an auth redirect. Everyone else (e.g. first responders) never downloads it.
+  const unsubscribe = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        queryClient.clear();
-        purgeSensitiveCaches();
-      }
-      // A reset link may land on any page (Supabase falls back to the site URL when the
-      // redirect isn't allow-listed); always send the user to the new-password form.
-      if (event === 'PASSWORD_RECOVERY') {
-        navigate('/auth?mode=update-password', { replace: true });
-      }
+    if (unsubscribe.current) return;
+    if (!hasStoredSession() && !hasAuthRedirect() && !pathname.startsWith('/auth')) return;
+    let cancelled = false;
+    loadSupabase().then((supabase) => {
+      if (cancelled || unsubscribe.current) return;
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+          purgeSensitiveCaches();
+        }
+        // A reset link may land on any page (Supabase falls back to the site URL when the
+        // redirect isn't allow-listed); always send the user to the new-password form.
+        if (event === 'PASSWORD_RECOVERY') {
+          navigate('/auth?mode=update-password', { replace: true });
+        }
+      });
+      unsubscribe.current = () => subscription.unsubscribe();
     });
-    return () => subscription.unsubscribe();
-  }, [queryClient, navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, queryClient, navigate]);
+
+  // Unsubscribe only when the component itself goes away, not on every route change.
+  useEffect(
+    () => () => {
+      unsubscribe.current?.();
+      unsubscribe.current = null;
+    },
+    []
+  );
 
   return null;
 };
